@@ -1,8 +1,8 @@
 #!/bin/bash
 # Really simple screen recorder by gammay
 # Usage: 
-#       Run the script and click on the window to record.
-#       Hit 'q' in the window when done.
+#       Run the script from a terminal and click on a window.
+#       Hit 'q' in the terminal when done.
 #
 # To record the root window, click on the root window.
 # Hitting ^C during recording will remove the output file.
