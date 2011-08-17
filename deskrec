@@ -1,0 +1,71 @@
+#!/bin/bash
+# Really simple screen recorder by gammay
+# Usage: 
+#       Run the script and click on the window to record.
+#       Hit 'q' in the window when done.
+#
+# To record the root window, click on the root window.
+# Hitting ^C during recording will remove the output file.
+#
+# Tweaks: See the fps variable, or the bottom line 
+#         where ffmpeg is executed.
+
+fps=20
+
+deps=(ffmpeg xwininfo grep cut awk sed)
+tmpseed=${0//[^a-Z]/}"-$RANDOM"
+tmp="/tmp/${tmpseed}.tmp"
+
+# Dependency checking
+count=0
+for dep in ${deps[*]}; do
+	if [ ! $(which $dep) ]; then
+		echo "Missing dependency: $dep";
+		((count++))
+	fi
+done
+
+if [ $count -ne 0 ]; then
+	echo "$count dependencies not met."
+	exit 1
+fi
+
+unset count
+
+echo -e "\nClick on the desired window. Do NOT move or resize it afterwards.\n"
+echo "[q] quits and prints the output file."
+echo "^C will CANCEL and REMOVE the output."
+
+# Run xwininfo to grab window
+xwininfo > ${tmp}
+
+# Grab id and name (Although we don't need id anymore!)
+idname=$(grep "Window id" ${tmp} | cut -d : -f 3)
+id=$(echo ${idname} | awk '{print $1}')
+name=$(echo ${idname} | awk '{print $2}' | sed -e s/\"//g)
+name=${name//[^a-Z]/}
+unset idname
+
+# Grab width, height
+width=$(grep "Width:" ${tmp} | awk '{print $2}')
+height=$(grep "Height:" ${tmp} | awk '{print $2}')
+
+# Grab offsets
+offsx=$(grep "Absolute upper-left X:" ${tmp} | awk '{print $4}')
+offsy=$(grep "Absolute upper-left Y:" ${tmp} | awk '{print $4}')
+
+rm -f ${tmp}
+
+dims=${width}x${height}
+output="${name}-${tmpseed}.mpg"
+
+echo -e "\nGeometry for \"${name}\" (${id}) is ${dims}+${offsx}+${offsy}."
+echo -e "Launching ffmpeg.\n"
+
+ffmpeg -loglevel panic \
+       -f x11grab \
+       -r ${fps} \
+       -s ${width}x${height} \
+       -i :0.0+${offsx},${offsy} \
+       ${output} &&  echo -e "\nOutput: ${output}" || rm -f ${output}
+
