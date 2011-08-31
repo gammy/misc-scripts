@@ -12,8 +12,10 @@
 
 fps=20
 
-deps=(ffmpeg xwininfo grep cut awk sed)
-tmpseed=${0//[^a-Z]/}"-$RANDOM"
+deps=(ffmpeg xwininfo grep cut awk sed basename)
+name=$(basename $0)
+tmpseed=${name//[^a-Z]/}"-$RANDOM"
+unset $name
 tmp="/tmp/${tmpseed}.tmp"
 
 # Dependency checking
