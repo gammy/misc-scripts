@@ -1,0 +1,303 @@
+#!/usr/bin/perl
+# MOTD administration script by gammy.
+
+use warnings;
+use encoding 'utf8';
+use strict;
+use DBI;
+use Data::Dumper;
+use Getopt::Long;
+use Switch 'Perl6'; # Note: no fallthrough
+use File::Temp;
+use POSIX 'strftime';
+
+use constant ROOT    => '/var/local/motd-admin';
+use constant DBNAME  => ROOT . '/motd.sqlite3';
+
+use constant {
+    VERSION  => "v0.1.1",
+    DB       => "dbi:SQLite:" . DBNAME,
+    MOTD     => ROOT . "/motd.txt",
+    LINES    => 5,
+    WRAP     =>	80, 
+    TIME_FMT => '%y%m%d'
+};
+
+## Subroutines
+
+sub create_table{
+
+    my $dbh = shift;
+
+    $dbh->do(
+        "CREATE TABLE IF NOT EXISTS entries (
+            ID      INTEGER PRIMARY KEY AUTOINCREMENT, 
+            date    INTEGER, 
+            type    INTEGER,
+            url     TEXT,
+            text    TEXT
+        )");
+
+    $dbh->do(
+        "CREATE TRIGGER IF NOT EXISTS add_timestamp_on_row 
+        AFTER 
+            INSERT ON entries
+        BEGIN
+            UPDATE 
+                entries 
+            SET 
+                date = DATETIME('NOW')
+            WHERE
+                rowid = new.rowid;
+        END;");
+
+}
+
+sub add_entry{
+    my ($dbh, $type, $text) = @_;
+
+    $dbh->do(sprintf(
+            "INSERT INTO entries
+                ('type', 'text') 
+            VALUES 
+                (%d, %s)",
+	    $type,
+            $dbh->quote($text)));
+}
+
+sub del_entry{
+    my ($dbh, $id) = @_;
+    $dbh->do(sprintf("DELETE FROM entries WHERE id = %d", $id));
+}
+
+sub set_entry{
+    my ($dbh, $id, $type, $text) = @_;
+
+    $dbh->do(sprintf(
+            "UPDATE entries SET
+                type = %d, text = %s 
+            WHERE
+                id = %d",
+            $type,
+            $dbh->quote($text),
+            $id));
+}
+
+sub get_entry {
+    my ($dbh, $id) = @_;
+
+    my @res = $dbh->selectrow_array(
+        "SELECT 
+            strftime('%s', date), type, text
+        FROM 
+            entries
+        WHERE
+            id = $id"); # XXX strip quotes? make numeric?  meh.
+
+    return @res;
+}
+
+sub get_latest_entries {
+    my ($dbh, $max_rows) = @_;
+
+    my $res = $dbh->selectall_arrayref(
+        "SELECT 
+            id, strftime('%s', date), type, text
+        FROM 
+            entries
+        ORDER BY 
+            date DESC " .
+        (defined $max_rows ? "LIMIT 0, $max_rows" : ""));
+
+    return $res;
+}
+
+sub get_latest_entry_id {
+
+	my $dbh = shift;
+	my $value = "";
+
+	my $ref = get_latest_entries($dbh, 1);
+	$value = @$ref[0]->[0];
+	print "Latest entry: $value\n";
+
+	return $value;
+}
+
+sub get_stdin_opt{
+
+	print shift;
+
+	my $opts = '';
+	$opts .= "$_|" for @_;
+	chop $opts;
+
+	my $read;
+
+	for(;;){
+		$read = <>;
+		chomp $read;
+		last if $read=~m/[$opts]/;
+	}
+
+	return $read;
+}
+
+sub get_stdin_message{
+	my %types = ('a' => 0, 'w' => 1, 'i' => 2);
+	my $type = get_stdin_opt('[a]lert, [w]arn, [i]nfo: ', qw/a w i/);
+	my $message = get_input(@_);
+	return(($types{$type}, $message));
+}
+
+sub get_input {
+
+    my ($type, $message) = @_;
+
+    my $editor = $ENV{VISUAL};
+    die "VISUAL environment variable not set (no default editor!)" unless defined $editor;
+
+    $editor .= ' +"set nobackup"' if $editor=~m/^vi/; #Disable backups if vi[m]
+
+    my $fh = File::Temp->new(TEMPLATE => "motd_XXXX", DIR => "./");
+    my $filename = $fh->filename;
+
+    if(defined($message)){
+	    print $fh "$message";
+	    close $fh;
+    }
+
+    system "$editor \"$filename\"";
+    die "\"$editor\" exit unexpectedly" if ($? >> 8) != 0;
+
+    open $fh, $filename or die "Can't open \"$filename\"";
+
+    my $text = "";
+    $text .= $_ for <$fh>;
+
+    close $fh;
+    chomp $text;
+
+    $fh->DESTROY();
+
+    print "DBG: $filename was not deleted?\n" if -e "$filename";
+    undef $filename;
+
+    die "Aborting for there is no input.\n" if "$text" eq "";
+
+    return $text;
+}
+
+sub update_hardcopy {
+    my ($dbh, $filename) = @_;
+
+    my $listref = get_latest_entries($dbh, LINES);
+
+    my $buffer = '';
+
+    my %status = (
+		  0 => "\e[0;31mALERT\e[0m",
+		  1 => "\e[0;32mWARN\e[0m ",
+		  2 => "\e[0;33mINFO\e[0m ",
+		 );
+
+    my $ansi_len = length("\e[X;XXm\e[0m");
+
+    foreach(@$listref) {
+        my ($id, $date, $type, $text) = @$_;
+	my $entries = '';
+
+	$date = strftime(TIME_FMT, localtime($date));
+
+	my $entry = sprintf "%s %s %s", $date, $status{$type}, $text;
+	my $padlen = (length($entry) - length($text) - $ansi_len);
+	my $padding = ' 'x$padlen;
+
+	my $count = 0;
+	my $wrap = WRAP + $ansi_len;
+	while(length($entry) > 0) {
+		my $segment = substr $entry, 0, $wrap, '';
+		$entries .= $count > 0 ? "$padding$segment\n" : "$segment\n";
+		$wrap = WRAP - length($padding);
+
+		$count++;
+	}
+
+	$buffer .= $entries;
+    }
+
+    my $fh;
+    open $fh, ">$filename" or die "Can't open \"$filename\": $!";
+    binmode $fh, ":utf8";
+    print $fh $buffer;
+    close $fh;
+}
+   
+################################
+
+die DBNAME . " not found.\n" if ! -e DBNAME;
+
+my $dbh = DBI->connect(DB) or die "DB: $!";
+create_table($dbh);
+
+print VERSION . "\n";
+my $sel = get_stdin_opt('[a]dd, [e]dit, [d]elete, [l]ist, [D]ump: ', qw/a e d l D/); 
+
+given($sel) {
+
+	when('a') {
+		add_entry($dbh, get_stdin_message());
+		update_hardcopy($dbh, MOTD);
+	}
+
+	when('d') {
+
+		print "id or [l]atest: ";
+		my $value = <>;
+		chomp $value;
+
+		if(lc(substr($value, 0, 1)) eq "l") {
+			$value = get_latest_entry_id($dbh);
+		}
+
+		my ($cdate) = (get_entry($dbh, $value))[0];
+		die "Could not find an entry with that id.\n" unless defined $cdate;
+
+		del_entry($dbh, $value);
+		update_hardcopy($dbh, MOTD);
+	}
+
+	when('e') {
+		print "id or [l]atest: ";
+		my $value = <>;
+		chomp $value;
+
+		if(lc(substr($value, 0, 1)) eq "l") {
+			$value = get_latest_entry_id($dbh);
+		}
+
+		my ($cdate, $ctype, $ctext) = get_entry($dbh, $value);
+		die "Could not find an entry with that id.\n" unless defined $cdate;
+
+		set_entry($dbh, $value, get_stdin_message($ctype, $ctext));
+		update_hardcopy($dbh, MOTD);
+	}
+
+	when('l') {
+
+		my $listref = get_latest_entries($dbh, LINES);
+		foreach(@$listref) {
+			my ($id, $date, $type, $text) = @$_;
+			$date = strftime(TIME_FMT, localtime($date));
+			print "$id: $date\n  $text\n\n";
+		}
+	}
+
+	when('D') {
+		update_hardcopy($dbh, MOTD);
+	}
+}
+
+open my $fh, MOTD or die "$!\n";
+print for <$fh>;
+close $fh;
