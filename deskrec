@@ -11,6 +11,7 @@
 #         where ffmpeg is executed.
 
 fps=20
+qmax=6
 
 deps=(ffmpeg xwininfo grep cut awk sed basename)
 name=$(basename $0)
@@ -67,6 +68,7 @@ echo -e "Launching ffmpeg.\n"
 ffmpeg -loglevel panic \
        -f x11grab \
        -r ${fps} \
+       -qmax ${qmax} \
        -s ${width}x${height} \
        -i :0.0+${offsx},${offsy} \
        ${output} &&  echo -e "\nOutput: ${output}" || rm -f ${output}
