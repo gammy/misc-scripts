@@ -15,7 +15,8 @@ qmax=6
 
 deps=(ffmpeg xwininfo grep cut awk sed basename)
 name=$(basename $0)
-tmpseed=${name//[^a-Z]/}"-$RANDOM"
+tmpseed=${name//[^aA-zZ]/}-${RANDOM}
+
 unset name
 tmp="/tmp/${tmpseed}.tmp"
 
@@ -46,7 +47,7 @@ xwininfo > ${tmp}
 idname=$(grep "Window id" ${tmp} | cut -d : -f 3)
 id=$(echo ${idname} | awk '{print $1}')
 name=$(echo ${idname} | awk '{print $2}' | sed -e s/\"//g)
-name=${name//[^a-Z]/}
+name=${name//[^aA-zZ]/}
 unset idname
 
 # Grab width, height
