@@ -1,9 +1,9 @@
 #!/bin/bash
-# A quick and dirty multitool which uses 'convert'to do the job. 
+# A quick and dirty multitool which uses 'convert' to do the job. 
 # By gammy.
 #
 # In essence it just runs 'convert' on each image in the source path. 
-
+#
 # You can  pass any arguments along to 'convert' itself, allowing you to use 
 # this as a multi-file wrapper around it.
 
