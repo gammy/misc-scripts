@@ -4,15 +4,14 @@
 src=""
 dst="thumbs"
 prefix="thumb_"
-size="100x100"
+convert="convert"
 
 usage() {
 	echo -e "Quick n dirty thumbnailer\n"
-	echo "Usage: $(basename $0) -s <source path> [options]"
-	echo -e "Example: $(basename $0) -p thumb_ -s 640x480 -p /originals/ -d ./thumbs/\n"
+	echo "Usage: $(basename $0) -s <source path> [options] <convert args>"
+	echo -e "Example: $(basename $0) -p thumb_ -s /originals/ -d ./thumbs/ -- -size 100x100\n"
 	echo "-s foo     set source path to 'foo'"
 	echo "-d ${dst}  set destination path to '${dst}'"
-	echo "-S ${size} set target size to ${size}"
 	echo -e "-P ${prefix}  set target prefix to '${prefix}'\n"
 	echo "Only the -s argument is required to run."
 }
@@ -25,22 +24,24 @@ while getopts “s:d:S:P:h” opt; do
 		d)
 			dst="$OPTARG"
 			;;
-		S)
-			size="$OPTARG"
-			;;
 		P)
 			prefix="${OPTARG}"
 			;;
 		h)
 			usage
-			exit
+			exit 1
 			;;
 	esac
 done
 
 if [ -z ${src} ]; then
 	usage
-	exit
+	exit 1
+fi
+
+if [ $(which "${convert}" | wc -l)  = 0 ]; then
+	echo "Can't find command \"${convert}\""
+	exit 0
 fi
 
 if [ ! -d ${dst} ]; then
@@ -50,7 +51,7 @@ fi
 find ${src} -maxdepth 1 -type f | while read old; do
 
 	if [ $(file "${old}" | grep image | wc -l) != 1 ]; then
-		continue # Skip non-images
+		continue 
 	fi
 
 	type=${old##*.}
@@ -58,12 +59,12 @@ find ${src} -maxdepth 1 -type f | while read old; do
 	bn=$(basename "${old}" ".${type}")
 	new="${dst}/${prefix}${bn}.${type}"
 
-	if [ ! -e "${new}" ]; then # XXX might be nice to be able to override this
-		echo "\"${old}\" -> \"${new}\""
-		convert "${old}" \
-			-scale ${size} \
-			"${new}" || echo "^ ERROR"
-	else
+	if [ -e "${new}" ]; then 
 		echo "Already exists: \"${new}\""
+		continue
 	fi
+		
+	echo "\"${old}\" -> \"${new}\""
+
+	$convert "${old}" ${args} "${new}" || echo "^ ERROR"
 done
