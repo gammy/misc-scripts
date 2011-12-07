@@ -11,18 +11,20 @@ src=""
 dst="thumbs"
 
 prefix="thumb_"
-postfix=""
+postfix=
 
 convert="convert"
+depth="-maxdepth 1"
 
 usage() {
 	echo -e "Quick n dirty '$convert' multitool\n"
 	echo "Usage: $(basename $0) -s <source path> [options] -- <convert args>"
 	echo -e "Example: $(basename $0) -p thumb_ -s /originals/ -d ./thumbs/ -- -size 100x100\n"
-	echo "-s <src>      set source path       (default: \"$src\")"
-	echo "-d <dst>      set destination path  (default: \"$dst\")"
-	echo "-p <prefix>   set target prefix     (default: \"$prefix\")"
-	echo -e "-P <postfix>  set target postfix    (default: \"$postfix\")\n"
+	echo "-s <src>      set source path        (default: \"$src\")"
+	echo "-d <dst>      set destination path   (default: \"$dst\")"
+	echo "-p <prefix>   set target prefix      (default: \"$prefix\")"
+	echo "-P <postfix>  set target postfix     (default: \"$postfix\")"
+	echo -e "-r            recursively find files (default: disabled)\n"
 	echo "Only the -s argument is required to run."
 }
 
@@ -33,6 +35,7 @@ while [ $# -gt 0 ]; do
 		-d) dst="$2";;
 		-p) prefix="$2";;
 		-P) postfix="$2";;
+		-r) depth=;;
 		-h) usage
 		    exit 1;;
 	esac
@@ -50,10 +53,10 @@ if [ $(which "$convert" | wc -l)  = 0 ]; then
 fi
 
 if [ ! -d $dst ]; then
-	mkdir -v $dst
+	mkdir -pv $dst
 fi
 
-find $src -maxdepth 1 -type f | while read old; do
+find $src $depth -type f | while read old; do
 
 	if [ $(file "$old" | grep image | wc -l) != 1 ]; then
 		continue 
