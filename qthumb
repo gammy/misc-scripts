@@ -1,9 +1,17 @@
 #!/bin/bash
-# A quick and dirty thumbnailer which uses 'convert'to do the job. By gammy.
+# A quick and dirty multitool which uses 'convert'to do the job. 
+# By gammy.
+#
+# In essence it just runs 'convert' on each image in the source path. You can 
+# pass any arguments along to 'convert' itself, allowing you to use this as a 
+# multi-file wrapper around it.
 
 src=""
 dst="thumbs"
+
 prefix="thumb_"
+postfix=""
+
 convert="convert"
 
 usage() {
@@ -12,7 +20,8 @@ usage() {
 	echo -e "Example: $(basename $0) -p thumb_ -s /originals/ -d ./thumbs/ -- -size 100x100\n"
 	echo "-s foo     set source path to 'foo'"
 	echo "-d ${dst}  set destination path to '${dst}'"
-	echo -e "-P ${prefix}  set target prefix to '${prefix}'\n"
+	echo "-p ${prefix}  set target prefix to '${prefix}'"
+	echo -e "-P ${postfix}  set target postfix to '${postfix}'\n"
 	echo "Only the -s argument is required to run."
 }
 
@@ -22,9 +31,9 @@ while [ $# -gt 0 ]; do
 		-s) src="$2";;
 		-d) dst="$2";;
 		-p) prefix="$2";;
+		-P) postfix="$2";;
 		-h) usage
-		    exit 1
-		    ;;
+		    exit 1;;
 	esac
 	shift
 done
@@ -52,14 +61,14 @@ find ${src} -maxdepth 1 -type f | while read old; do
 	type=${old##*.}
 
 	bn=$(basename "${old}" ".${type}")
-	new="${dst}/${prefix}${bn}.${type}"
+	new="${dst}/${prefix}${bn}${postfix}.${type}"
 
 	if [ -e "${new}" ]; then 
 		echo "Already exists: \"${new}\""
 		continue
 	fi
-		
-	echo "\"${old}\" -> \"${new}\""
 
+		
+	echo $convert \"${old}\" $@ \"${new}\"
 	$convert "${old}" $@ "${new}" || echo "^ ERROR"
 done
