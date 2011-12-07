@@ -8,13 +8,13 @@ size="100x100"
 
 usage() {
 	echo -e "Quick n dirty thumbnailer\n"
-	echo "Usage: $(basename $0) -p <source path> [options]"
+	echo "Usage: $(basename $0) -s <source path> [options]"
 	echo -e "Example: $(basename $0) -p thumb_ -s 640x480 -p /originals/ -d ./thumbs/\n"
 	echo "-s foo     set source path to 'foo'"
 	echo "-d ${dst}  set destination path to '${dst}'"
 	echo "-S ${size} set target size to ${size}"
 	echo -e "-P ${prefix}  set target prefix to '${prefix}'\n"
-	echo "Only the -p argument is required to run."
+	echo "Only the -s argument is required to run."
 }
 
 while getopts “s:d:S:P:h” opt; do
