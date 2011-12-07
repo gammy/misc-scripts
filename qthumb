@@ -18,7 +18,7 @@ depth="-maxdepth 1"
 usage() {
 	echo -e "Quick n dirty '$convert' multitool\n"
 	echo "Usage: $(basename $0) -s <source path> [options] -- <convert args>"
-	echo -e "Example: $(basename $0) -s ./foo -d ./foo/tmp -- -size 100x100\n"
+	echo -e "Example: $(basename $0) -s ./foo -d ./foo/new -- -resize 100x100 -strip -rotate 180\n"
 	echo "-s <src>      set source path        (default: \"$src\")"
 	echo "-d <dst>      set destination path   (default: \"$dst\")"
 	echo "-p <prefix>   set target prefix      (default: \"$prefix\")"
@@ -79,6 +79,6 @@ find $src $depth -type f | while read old; do
 	fi
 
 		
-	echo $convert \"$old\" $@ \"$new\"
-	$convert "$old" $@ "$new" || echo -e "^ ERROR\n"
+	echo $convert $@ \"$old\" \"$new\"
+	$convert "$@" "$old" "$new" || echo -e "^ ERROR\n"
 done
