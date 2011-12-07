@@ -39,37 +39,37 @@ while [ $# -gt 0 ]; do
 	shift
 done
 
-if [ -z ${src} ] || [ $# = 0 ]; then
+if [ -z $src ] || [ $# = 0 ]; then
 	usage
 	exit 1
 fi
 
-if [ $(which "${convert}" | wc -l)  = 0 ]; then
-	echo "Can't find command \"${convert}\""
+if [ $(which "$convert" | wc -l)  = 0 ]; then
+	echo "Can't find command \"$convert\""
 	exit 0
 fi
 
-if [ ! -d ${dst} ]; then
-	mkdir -v ${dst}
+if [ ! -d $dst ]; then
+	mkdir -v $dst
 fi
 
-find ${src} -maxdepth 1 -type f | while read old; do
+find $src -maxdepth 1 -type f | while read old; do
 
-	if [ $(file "${old}" | grep image | wc -l) != 1 ]; then
+	if [ $(file "$old" | grep image | wc -l) != 1 ]; then
 		continue 
 	fi
 
 	type=${old##*.}
 
-	bn=$(basename "${old}" ".${type}")
-	new="${dst}/${prefix}${bn}${postfix}.${type}"
+	bn=$(basename "$old" ".$type")
+	new="$dst/$prefix$bn$postfix.$type"
 
-	if [ -e "${new}" ]; then 
-		echo "Already exists: \"${new}\""
+	if [ -e "$new" ]; then 
+		echo "Already exists: \"$new\""
 		continue
 	fi
 
 		
-	echo $convert \"${old}\" $@ \"${new}\"
-	$convert "${old}" $@ "${new}" || echo "^ ERROR"
+	echo $convert \"$old\" $@ \"$new\"
+	$convert "$old" $@ "$new" || echo "^ ERROR"
 done
