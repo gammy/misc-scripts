@@ -8,7 +8,7 @@ convert="convert"
 
 usage() {
 	echo -e "Quick n dirty thumbnailer\n"
-	echo "Usage: $(basename $0) -s <source path> [options] <convert args>"
+	echo "Usage: $(basename $0) -s <source path> [options] -- <convert args>"
 	echo -e "Example: $(basename $0) -p thumb_ -s /originals/ -d ./thumbs/ -- -size 100x100\n"
 	echo "-s foo     set source path to 'foo'"
 	echo "-d ${dst}  set destination path to '${dst}'"
@@ -16,25 +16,20 @@ usage() {
 	echo "Only the -s argument is required to run."
 }
 
-while getopts “s:d:s:p:h” opt; do
-	case $opt in
-		s)
-			src="$OPTARG"
-			;;
-		d)
-			dst="$OPTARG"
-			;;
-		p)
-			prefix="${OPTARG}"
-			;;
-		h)
-			usage
-			exit 1
-			;;
+while [ $# -gt 0 ]; do 
+	case "$1" in
+		--) shift; break;;
+		-s) src="$2";;
+		-d) dst="$2";;
+		-p) prefix="$2";;
+		-h) usage
+		    exit 1
+		    ;;
 	esac
+	shift
 done
 
-if [ -z ${src} ]; then
+if [ -z ${src} ] || [ $# = 0 ]; then
 	usage
 	exit 1
 fi
@@ -66,5 +61,5 @@ find ${src} -maxdepth 1 -type f | while read old; do
 		
 	echo "\"${old}\" -> \"${new}\""
 
-	$convert "${old}" ${args} "${new}" || echo "^ ERROR"
+	$convert "${old}" $@ "${new}" || echo "^ ERROR"
 done
