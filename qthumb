@@ -16,7 +16,7 @@ usage() {
 	echo "Only the -s argument is required to run."
 }
 
-while getopts “s:d:S:P:h” opt; do
+while getopts “s:d:s:p:h” opt; do
 	case $opt in
 		s)
 			src="$OPTARG"
@@ -24,7 +24,7 @@ while getopts “s:d:S:P:h” opt; do
 		d)
 			dst="$OPTARG"
 			;;
-		P)
+		p)
 			prefix="${OPTARG}"
 			;;
 		h)
