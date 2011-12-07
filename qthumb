@@ -2,9 +2,10 @@
 # A quick and dirty multitool which uses 'convert'to do the job. 
 # By gammy.
 #
-# In essence it just runs 'convert' on each image in the source path. You can 
-# pass any arguments along to 'convert' itself, allowing you to use this as a 
-# multi-file wrapper around it.
+# In essence it just runs 'convert' on each image in the source path. 
+
+# You can  pass any arguments along to 'convert' itself, allowing you to use 
+# this as a multi-file wrapper around it.
 
 src=""
 dst="thumbs"
@@ -15,13 +16,13 @@ postfix=""
 convert="convert"
 
 usage() {
-	echo -e "Quick n dirty thumbnailer\n"
+	echo -e "Quick n dirty '$convert' multitool\n"
 	echo "Usage: $(basename $0) -s <source path> [options] -- <convert args>"
 	echo -e "Example: $(basename $0) -p thumb_ -s /originals/ -d ./thumbs/ -- -size 100x100\n"
-	echo "-s foo     set source path to 'foo'"
-	echo "-d ${dst}  set destination path to '${dst}'"
-	echo "-p ${prefix}  set target prefix to '${prefix}'"
-	echo -e "-P ${postfix}  set target postfix to '${postfix}'\n"
+	echo "-s <src>      set source path       (default: \"$src\")"
+	echo "-d <dst>      set destination path  (default: \"$dst\")"
+	echo "-p <prefix>   set target prefix     (default: \"$prefix\")"
+	echo -e "-P <postfix>  set target postfix    (default: \"$postfix\")\n"
 	echo "Only the -s argument is required to run."
 }
 
