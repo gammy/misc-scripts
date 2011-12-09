@@ -48,7 +48,7 @@ if [ -z $src ] || [ $# = 0 ]; then
 	exit 0
 fi
 
-if [ $(which "$convert" | wc -l)  = 0 ]; then
+if [ ! $(which "$convert") ]; then
 	echo "Can't find command \"$convert\""
 	exit 0
 fi
@@ -59,7 +59,7 @@ fi
 
 find $src $depth -type f | while read old; do
 
-	if [ $(file "$old" | grep image | wc -l) != 1 ]; then
+	if ! file "$old" | grep image > /dev/null 2>&1; then
 		continue 
 	fi
 
