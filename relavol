@@ -1,0 +1,49 @@
+#!/bin/bash
+# Adjust master volume with relative and/or percentual values("-5%") 
+# using amixer.
+# By gammy
+
+control="Master"
+
+if [ -z $(which amixer) ]; then
+	echo "Error: amixer not found"
+	exit
+fi
+
+if [ $# -ne 1 ]; then
+	echo "Usage: $(basename $0) <[-]Volume[%]>"
+	echo "Example: $(basename $0) -10%"
+	exit
+fi
+
+max=$(amixer get "$control" | grep 'Limits' | cut -d "-" -f 2 | cut -d " " -f 2)
+cur=$(amixer get "$control" | grep 'Front Left:' | cut -d " " -f 6)
+arg=$1
+rel=
+
+# Is the argument relative?
+if [ ${arg:0:1} = "+" ] || [ ${arg:0:1} = "-" ]; then
+	rel=${arg:0:1}
+	arg=${arg:1:${#arg}-1}
+fi
+
+# Is the argument a percentage?
+if [ ${arg:${#arg}-1:1} = "%" ]; then
+	arg="$rel${arg:0:${#arg}-1}"
+	let unit=($max / 100)
+	let arg=($unit * $arg)
+fi
+
+if [ ! -z $rel ]; then
+	let new=($cur + $arg);
+else
+	new=$arg
+fi
+
+if [ $new -lt 0 ]; then
+	new=0
+elif [ $new -gt $max ]; then
+	new=$max
+fi
+
+amixer cset iface=MIXER,name="$control Playback Volume" $new
