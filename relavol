@@ -4,6 +4,8 @@
 # By gammy
 
 control="Master"
+arg=$1
+rel=
 
 if [ -z $(which amixer) ]; then
 	echo "Error: amixer not found"
@@ -16,10 +18,9 @@ if [ $# -ne 1 ]; then
 	exit
 fi
 
+# Obtain current values
 max=$(amixer get "$control" | grep 'Limits' | cut -d "-" -f 2 | cut -d " " -f 2)
 cur=$(amixer get "$control" | grep 'Front Left:' | cut -d " " -f 6)
-arg=$1
-rel=
 
 # Is the argument relative?
 if [ ${arg:0:1} = "+" ] || [ ${arg:0:1} = "-" ]; then
@@ -34,16 +35,19 @@ if [ ${arg:${#arg}-1:1} = "%" ]; then
 	let arg=($unit * $arg)
 fi
 
+# Relative / Absolute adjust
 if [ ! -z $rel ]; then
 	let new=($cur + $arg);
 else
 	new=$arg
 fi
 
+# Clip
 if [ $new -lt 0 ]; then
 	new=0
 elif [ $new -gt $max ]; then
 	new=$max
 fi
 
+# Set volume
 amixer cset iface=MIXER,name="$control Playback Volume" $new
