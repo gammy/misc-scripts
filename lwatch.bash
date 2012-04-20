@@ -2,6 +2,11 @@
 # Poor man's "watch"
 # Depends on bash, date, stty & head.
 
+if [ ${#@} -lt 2 ]; then
+	echo "Usage: $(basename $0) <interval> <command>"
+	exit 1
+fi
+
 t=$1
 shift
 
