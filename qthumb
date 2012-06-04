@@ -8,9 +8,9 @@
 # this as a multi-file wrapper around it.
 
 src=
-dst="thumbs"
-prefix="thumb_"
-postfix=
+dst="qthumb"
+prefix="modified_"
+postfix=""
 suffix=
 convert="convert"
 depth="-maxdepth 1"
@@ -18,7 +18,7 @@ depth="-maxdepth 1"
 usage() {
 	echo -e "Quick n dirty '$convert' multitool\n"
 	echo "Usage: $(basename $0) -s <source path> [options] -- <convert args>"
-	echo -e "Example: $(basename $0) -s ./foo -d ./foo/new -- -resize 100x100 -strip -rotate 180\n"
+	echo -e "Example: $(basename $0) -s ./foo -d ./foo/new -- -resize 100x100 -strip -auto-orient\n"
 	echo "-s <src>      set source path        (default: \"$src\")"
 	echo "-d <dst>      set destination path   (default: \"$dst\")"
 	echo "-p <prefix>   set target prefix      (default: \"$prefix\")"
