@@ -1,0 +1,46 @@
+#!/bin/bash
+
+if [ $# -ne 1 ]; then
+	echo "Usage: $(basename $0) <library postfix>"
+	echo "Example: $(basename $0) sgs"
+	echo "The example will symlink 'libraries-sgs/' to 'libraries/' in the arduino home set in this script"
+	exit 0
+fi
+
+arduino_home="$(pwd)/env/arduino-latest"
+     lib_dst="libraries"
+     lib_src="libraries-$1"
+
+echo "Home        : $arduino_home"
+echo "Library path: $arduino_home/$lib_src"
+
+cd "$arduino_home"
+
+if [ $? != 0 ]; then
+	echo "Can't change directory to arduino home \"$arduino_home\""
+	exit 1
+fi
+
+
+# Ensure library target is a symlink (or nonexistent)
+if [ ! -L "$lib_dst" ]; then
+	if [ -e "$lib_dst" ]; then
+		echo "Library target \"$arduino_home/$lib_dst\" exists and is NOT a symlink! Won't touch it; bailing out"
+		exit 1
+	fi
+fi
+
+if [ ! -d "$lib_src" ]; then
+	echo "Library source \"$arduino_home/$lib_src\" is not a directory! Bailing out"
+	exit 1
+fi
+
+#echo "Current library link:"
+#ls -l "$(pwd)/$lib_dst"
+
+rm -vf "$lib_dst"
+ln -vs "$arduino_home/$lib_src" "$lib_dst"
+
+echo -e "\n\n"
+
+./arduino
