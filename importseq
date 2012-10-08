@@ -46,7 +46,7 @@ let num=(1 + $(ls "$beg"*"$postfix.$suffix" 2>/dev/null | wc -l))
 
 out=$(printf "%s$numfmt%s.%s" "$beg" $num "$postfix" "$suffix")
 
-imlib2_grab "$out" || aimport -window root "$out" && {
+imlib2_grab "$out" || import -window root "$out" && {
 	echo "Saved \"$out\""
 	xmessage -timeout 2 -buttons "" -center "Saved \"$out\"" > /dev/null 2>&1
 } || {
