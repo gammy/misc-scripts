@@ -19,7 +19,7 @@ usage() {
 	echo "-t <timefmt>  set time format        (default: \"$timefmt\")"
 	echo "-P <postfix>  set postfix            (default: \"$postfix\")"
 	echo "-n <numfmt>   set number format      (default: \"$numfmt\")"
-	echo "-e <suffix>   set suffix             (default: \"$suffix\")"
+	echo "-s <suffix>   set suffix             (default: \"$suffix\")"
 	echo -e "\nOutput file will be <dst>/<prefix><timefmt><postfix>-<num>.<suffix>, eg"
 
 	printf "%s/%s%s-$numfmt%s.%s\n\n" \
@@ -33,7 +33,7 @@ while [ $# -gt 0 ]; do
 		-t) timefmt="$2";;
 		-P) postfix="$2";;
 		-n) numfmt="$2";;
-		-e) suffix="$2";;
+		-s) suffix="$2";;
 		-h) usage
 		    exit 0;;
 	esac
@@ -42,7 +42,7 @@ done
 	
 beg=$(printf "%s/%s%s%s-" "$dst" "$prefix" "$timestr")
 
-let num=(1 + $(ls "$beg"* 2>/dev/null | wc -l))
+let num=(1 + $(ls "$beg"*"$postfix.$suffix" 2>/dev/null | wc -l))
 
 out=$(printf "%s$numfmt%s.%s" "$beg" $num "$postfix" "$suffix")
 
