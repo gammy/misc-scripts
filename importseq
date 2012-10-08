@@ -1,18 +1,54 @@
 #!/bin/bash
-# Import sequential filenames.
+# Import sequential filenames. Uses imlib2_bgrab and convert.
 
-dst="$HOME/Pictures/screenshots/"
+    dst=$(pwd)
+ prefix="screenshot-"
+timefmt="%y%m%d"
+ numfmt="%03d"
+postfix=
+ suffix="jpg"
 
-if [ ! -d "$dst" ]; then
-	echo "\"$dst\" is not a directory."
-	exit 1
-fi
+timestr=$(date +"$timefmt")
 
-prefix=$(date +"$dst/screenshot_%y%m%d-")
-let num=(1 + $(ls $prefix* | wc -l))
+usage() {
+	echo -e "Import sequential filenames\n"
+	echo "Usage: $(basename $0) [options]"
+	echo -e "Example: $(basename $0) -d ~ -e png \n"
+	echo "-d <dst>      set destination path   (default: \$(pwd))"
+	echo "-p <prefix>   set prefix             (default: \"$prefix\")"
+	echo "-t <timefmt>  set time format        (default: \"$timefmt\")"
+	echo "-P <postfix>  set postfix            (default: \"$postfix\")"
+	echo "-n <numfmt>   set number format      (default: \"$numfmt\")"
+	echo "-e <suffix>   set suffix             (default: \"$suffix\")"
+	echo -e "\nOutput file will be <dst>/<prefix><timefmt><postfix>-<num>.<suffix>, eg"
 
-filename=$(printf "%s%03d.png" $prefix $num)
+	printf "%s/%s%s-$numfmt%s.%s\n\n" \
+	       "$dst" "$prefix" "$timestr" "$postfix" "$postfix" 1 $suffix
+}
 
-imlib2_grab "$filename" ||
-import -window root "$filename" && 
-xmessage -timeout 2 -buttons "" -center "Saved \"$filename\""
+while [ $# -gt 0 ]; do 
+	case "$1" in
+		-d) dst="$2";;
+		-p) prefix="$2";;
+		-t) timefmt="$2";;
+		-P) postfix="$2";;
+		-n) numfmt="$2";;
+		-e) suffix="$2";;
+		-h) usage
+		    exit 0;;
+	esac
+	shift
+done
+	
+beg=$(printf "%s/%s%s%s-" "$dst" "$prefix" "$timestr")
+
+let num=(1 + $(ls "$beg"* 2>/dev/null | wc -l))
+
+out=$(printf "%s$numfmt%s.%s" "$beg" $num "$postfix" "$suffix")
+
+imlib2_grab "$out" || aimport -window root "$out" && {
+	echo "Saved \"$out\""
+	xmessage -timeout 2 -buttons "" -center "Saved \"$out\"" > /dev/null 2>&1
+} || {
+	echo "Boo, failed to take screenshot."
+}
