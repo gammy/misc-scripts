@@ -38,4 +38,16 @@ relavol
 Adjust master volume with relative and/or percentual values("-5%") using `amixer`.
 Perhaps interesting for people who want to support such a feature on other soundsystems, but actually redundant for amixer since this support is already built into it :p
 
+updateDynDNS
+------------
+_"This script allows you to easily update the DNS entries for your domains on Loopia. It reads a file consisting of a list of domains, and can take a new IP as argument. If suppressed, it will try to determine the IP on its own._"
+
+dictorg
+-------
+_"Dictorg is a basic dict.org parser script for console use. It is written in perl and uses LWP(since 0.8) to access dict.org."_
+
+
+bp
+---
+_"An ACPI battery and AC-power status script. Requires /proc, ACPI support, bash, head, tail, sed, grep and wc. Should now work on systems where battery isn't named BATx and adapter ACAD. Also works with batteries that don't report in mAh. Supports multiple batteries"_
 
