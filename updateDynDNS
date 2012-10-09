@@ -1,0 +1,162 @@
+#!/usr/bin/perl
+# Loopia DynDNS service updating script
+# Based on Rees PHP DynDNS script
+#
+# Copyright (C) 2007-2008 Kristian Gunstone
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+#
+my ($Username, $Password) = (
+    'your username', 
+    'your password'
+);
+
+use warnings;
+use strict;
+
+use WWW::Curl::Easy;
+
+my @Body;
+my $curl = WWW::Curl::Easy->new() or die("Curl initialisation failed");
+
+## Functions
+sub getHost{
+    my $In = gethostbyname(shift);
+    if($In){
+        return join('.', unpack("C*", $In));
+    }else{
+        return '';
+    }
+}
+
+sub bodyCallback{
+    my ($chunk, $context)=@_;
+    push @{$context}, $chunk;
+    return length($chunk);
+}
+
+sub getPage{
+    @Body = ();
+    $curl->setopt(CURLOPT_URL, "$_[0]");
+    open NULL, ">/dev/null";
+    print "Error:" . $curl->errbuf . "\n" if $curl->perform() != 0;
+    close NULL;
+    my $retbuf = join("", @Body);
+    return $retbuf;
+}
+
+## Globals
+my ($D,$M,$Y) = (localtime(time))[3..5];
+my $Today = sprintf("%02d%02d%02d", (1900+$Y)-2000, ++$M, $D);
+
+my %Self = ('version' => 0.8, 'name' => 'DynDNS update script');
+
+my $Logfile = "$Today-DynDNS-update.log";
+my $IPCheckURL = "http://dns.loopia.se/checkip/checkip.php";
+my $IPUpdateURL = "http://dns.loopia.se/XDynDNSServer/XDynDNS.php";
+        
+my @Header = (
+    "User-Agent: " . $Self{'name'} . " / v " . $Self{'version'},
+    "Referer: http://www.loopia.se");
+
+## Init
+$curl->setopt(CURLOPT_FOLLOWLOCATION,   1);
+$curl->setopt(CURLOPT_USERPWD,          "$Username:$Password");
+$curl->setopt(CURLOPT_WRITEFUNCTION,    \&bodyCallback);
+$curl->setopt(CURLOPT_FILE,             \@Body);
+$curl->setopt(CURLOPT_HEADER,           0);
+$curl->setopt(CURLOPT_VERBOSE,          0);
+$curl->setopt(CURLOPT_WRITEHEADER,      *NULL);
+$curl->setopt(CURLOPT_HTTPHEADER,       \@Header);
+
+## Main
+print "$Self{'name'} v$Self{'version'}\n";
+
+if(@ARGV < 1){
+    print "Usage: $0 <Domain list file> [<IP>]\n\n";
+    exit 1;
+}
+
+my $PageBuf;
+my $Domainfile = $ARGV[0];
+my $IP = "";
+
+open FILE, "<$Domainfile" or die "Couldn't open \"$Domainfile\"!\n";
+my @DomainList = <FILE>;
+close FILE;
+chomp @DomainList;
+
+my @BadDomainList;
+foreach(@DomainList){
+    push @BadDomainList, "\"$_\"" if $_=~m/![\._-abcdefghijklmnopqrstuvwxyz]/i;
+}
+die "Aborting due to invalid Domains: @BadDomainList\n" if @BadDomainList > 0;
+
+if(@ARGV > 1){
+    $IP = $ARGV[1];
+}else{
+    $| = 1;
+    print "IP omitted; attempting to obtain it..";
+    $PageBuf = getPage($IPCheckURL);
+    $IP = $1 if $PageBuf=~m/:\s(\d+\.\d+\.\d+\.\d+)</s;
+    print "ok.\n";
+}
+    
+die "Failed to parse IP!\n" unless $IP=~m/^\d+\.\d+\.\d+\.\d+$/;
+
+print "IP: $IP\n";
+
+print "Checking if \"$DomainList[0]\" resolves to $IP...";
+if(getHost($DomainList[0]) eq "$IP"){
+    print "Yes. No update required.\n";
+    exit 0;
+}else{
+    print "No.\n";
+}
+
+my $DefArgs = "system=default&myip=$IP";
+
+print "Updating Domains:\n";
+my %ResultList;
+
+open LOG, ">$Logfile" or die "Could not open \"$Logfile\" for write!\n";
+close LOG;
+
+for(my $i = 0; $i < @DomainList; $i++){
+    printf("%3d /%3d (%3d%%): %s ... ",
+        ($i+1), 
+        ($#DomainList+1), 
+        (($i+1) / (@DomainList / 100)), 
+        $DomainList[$i]
+    );
+
+    $PageBuf = getPage("$IPUpdateURL?$DefArgs&hostname=$DomainList[$i]");
+    $PageBuf = getPage("$IPUpdateURL?$DefArgs&hostname=www.$DomainList[$i]");
+
+    print "$PageBuf\n";
+
+    $ResultList{$PageBuf}++;
+
+    open LOG, ">>$Logfile";
+    print LOG "$DomainList[$i]: $PageBuf\n";
+    close LOG;
+
+}
+print "\n";
+$| = 0;
+
+print "Results:\n";
+print "$_:\t $ResultList{$_}\n" for sort keys %ResultList;
+
