@@ -19,7 +19,7 @@ Uses `ffmpeg`.
 importseq
 ---------
 A really simple but versatile screenshot generator which produces neat, sequentially named files.
-Uses imlib2\_grab or import, but can *very* easily use any grabbing program you have.
+Uses `imlib2\_grab` or `import`, but can easily use any grabbing program you have.
 
 lwatch
 ------
@@ -49,5 +49,5 @@ _"Dictorg is a basic dict.org parser script for console use. It is written in pe
 
 bp
 ---
-_"An ACPI battery and AC-power status script. Requires /proc, ACPI support, bash, head, tail, sed, grep and wc. Should now work on systems where battery isn't named BATx and adapter ACAD. Also works with batteries that don't report in mAh. Supports multiple batteries"_
+_"An ACPI battery and AC-power status script. Requires /proc, ACPI support, `bash`, `head`, `tail`, `sed`, `grep` and `wc`. Should now work on systems where battery isn't named BATx and adapter ACAD. Also works with batteries that don't report in mAh. Supports multiple batteries"_
 
