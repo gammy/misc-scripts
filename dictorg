@@ -1,0 +1,157 @@
+#!/usr/bin/perl
+# A small dict.org query script for console output
+#
+# Author: Kristian Gunstone
+#
+use LWP::UserAgent;
+use strict;
+
+my $VERSION 	= "0.8";
+my $DOCROOT		= "http://www.dict.org";
+my $NAME		= "dict.org query script v$VERSION by gammy";
+my $line_limit	= 23;	# If more, call default read
+my @headers		= ("User-Agent: $NAME", "Referer: $DOCROOT");
+my @body;
+
+our $ua = LWP::UserAgent->new(
+	agent   => $NAME,
+	timeout => 20
+);
+
+# Search specific variables
+my @dictionary_db_value = ();
+my @dictionary_db_name = ();
+my @dictionary_strategy_value = ();
+my @dictionary_strategy_name = ();
+
+my (%search, $match, $pagebuffer, $doublebuffer, $output, $found, $tmp);
+
+print "$NAME\n";
+
+if(@ARGV lt 1 or @ARGV gt 5 or lc($ARGV[0]) eq "--help"){ # Cheap
+    print "Usage: <me> <query> <-type [type]> <-db [db]>\n\n";
+    print "Example: <me> \"love\"\n";
+    print "Example: <me> \"love\" -db gcide\n\n";
+    print "Note: both -type and -db take 'help' as an argument\n\n";
+    exit;
+}
+
+$| = 1;
+
+print "Connecting...";
+my $req = HTTP::Request->new(GET => "$DOCROOT/bin/Dict");
+my $res = $ua->request($req);
+
+die "Request for '@_' failed with $res->status_line\n" unless $res->is_success;
+print "ok.\n";
+$pagebuffer = $res->content;
+
+$tmp = $1 if $pagebuffer=~m/<select name=\"Strategy\">(.*?)<\/select>/si;
+while($tmp=~m/value="(.+?)".*?>(.+?)\n/sig){
+    push(@dictionary_strategy_value, $1);
+    push(@dictionary_strategy_name, $2);
+}
+$tmp = $1 if $pagebuffer=~m/<select name=\"Database\">(.*?)<\/select>/si;
+while($tmp=~m/value="(.+?)".*?>(.+?)\n/sig){
+    push(@dictionary_db_value, $1);
+    push(@dictionary_db_name, $2);
+}
+$tmp = "";
+
+#Defaults
+$search{'query'}	= $ARGV[0];
+$search{'strategy'}	= "*";
+$search{'database'}	= "*";
+
+for(my $tmp = 0; $tmp < (@ARGV - 1); $tmp++){
+    $search{'strategy'} = lc($ARGV[($tmp + 1)]) if lc($ARGV[$tmp]) eq "-type";
+    $search{'database'} = lc($ARGV[($tmp + 1)]) if lc($ARGV[$tmp]) eq "-db";
+}
+
+$found = 0;
+foreach $tmp (@dictionary_db_value){
+    $found = 1 if $search{'database'} eq "$tmp";
+}
+if($found == 0){
+    print "Valid database strings:\n";
+    for($tmp = 0; $tmp < @dictionary_db_value; $tmp++){
+	printf("%s%s-\t%s\n", 
+	    $dictionary_db_value[$tmp], 
+	    " "x(12-length($dictionary_db_value[$tmp])), 
+		$dictionary_db_name[$tmp]);
+    }
+    exit;
+}
+    
+$found = 0;
+for (@dictionary_strategy_value){
+    $found = 1 if $search{'strategy'} eq "$_";
+}
+
+if($found == 0){
+    print "Valid search type strings:\n";
+    for($tmp = 0; $tmp < @dictionary_strategy_value; $tmp++){
+		printf("%s%s-\t%s\n", 
+			$dictionary_strategy_value[$tmp], 
+			" "x(12-length($dictionary_strategy_value[$tmp])), 
+			$dictionary_strategy_name[$tmp]);
+    }
+    exit;
+}
+
+print "Getting match of \"$search{'query'}\"...";
+
+my $dump		= $ENV{'HOME'} . '/.dict.org-' . $search{'query'} . '.tmp';
+my $syscall		= "less \"$dump\"";
+
+$req = HTTP::Request->new(POST => "$DOCROOT/bin/Dict");
+$req->content_type('application/x-www-form-urlencoded');
+$req->content("Form=Dict1&Query=$search{'query'}&Strategy=$search{'strategy'}&Database=$search{'database'}");
+$res = $ua->request($req);
+die "Request for '@_' failed with $res->status_line\n" unless $res->is_success;
+$pagebuffer = $res->content;
+
+print "ok\n\n";
+
+$pagebuffer =~s/\(<a.*?href="(.+?)>(.+?)<\/a>\)/($2)/gis; # Broken html...
+$doublebuffer = $pagebuffer;
+$doublebuffer =~s/<a.*?href=\".*?\".*?>(.+?)<\/a>/$1/gis;
+$doublebuffer =~s/<pre><\/pre>//gs;
+$pagebuffer =~s/\n//gs;
+$pagebuffer =~s/<a.*?href=\".*?\".*?>(.+?)<\/a>/$1/gis;
+$pagebuffer =~s/<.*?>//gs;
+
+$_ = $pagebuffer;
+
+if(/([0-9]+ definitions? found) for/si){
+    $match = $1;
+    $doublebuffer =~s/<html>.*?found//gis;
+    while($doublebuffer=~m/<b>(.+?):?<\/b><pre>(.+?)<\/pre>/gis){
+        $output .= substr($1, 0, -3)."\n".("="x(length($1)-3))."\n$2\n";
+    }
+}elsif(/(No definitions? found) for/si){
+    $match = $1;
+    $match = "$1$2" if /(No definitions? found) for ".+?"(, perhaps you mean:)/si;
+    $doublebuffer =~s/<html>.*?found//gis;
+    while($doublebuffer=~m/<b>(.+?:)<\/b>(.+?)</gis){
+        $output .= substr($1, 0, -1)."\n".("="x(length($1)-1))."\n$2\n";
+    }
+}else{
+    $doublebuffer =~s/<html>.*?<\/form>//gis;
+    while($doublebuffer=~m/<b>(.+?:)<\/b>(.+?)</gis){
+	$output .= substr($1, 0, -1)."\n".("="x(length($1)-1))."\n$2\n";
+    }
+}
+
+$doublebuffer = $pagebuffer = "";
+$output = "$match\n" . ("=" x length($match)) . "\n$output" if "$match" ne "";
+
+if(($output =~tr/\n//) > $line_limit){
+    open(FILE, ">$dump") or die "Could not open \"$dump\"";
+    print FILE $output;
+    close(FILE);
+    system("$syscall");
+    unlink("$dump") or die "Could not delete \"$dump\"";
+}else{
+    print $output;
+}
