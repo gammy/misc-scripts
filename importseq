@@ -1,5 +1,5 @@
 #!/bin/bash
-# Import sequential filenames. Uses imlib2_bgrab and convert.
+# Import sequential filenames. Uses imlib2_bgrab or convert.
 
     dst=$(pwd)
  prefix="screenshot-"
@@ -50,5 +50,7 @@ imlib2_grab "$out" || import -window root "$out" && {
 	echo "Saved \"$out\""
 	xmessage -timeout 2 -buttons "" -center "Saved \"$out\"" > /dev/null 2>&1
 } || {
+	ret=$?
 	echo "Boo, failed to take screenshot."
+	exit $ret
 }
