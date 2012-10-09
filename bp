@@ -1,0 +1,72 @@
+#!  /bin/bash
+#An ACPI battery and AC-power status script.
+#Requires /proc, ACPI support, bash, head, tail, sed, grep and wc. 
+#Should now work on systems where battery isn't named BATx and adapter ACAD.
+#Also works with batteries that don't report in mAh.
+#NEW: Now supports multiple batteries.
+#
+# Author: Kristian Gunstone
+
+checkdir () {
+	if [ ! -d $1 ]; then
+		echo "\"$1\" was not found! Exiting."
+		exit 1
+	fi
+}
+
+checkfile () {
+	if [ ! -e $1 ]; then
+		echo "\"$1\" was not found! Exiting."
+		exit 1
+	fi
+}
+
+checkdir /proc
+checkdir /proc/acpi
+checkdir /proc/acpi/battery
+
+BATTERY=(`ls -1 /proc/acpi/battery/`)
+NUMBATS=${#BATTERY[@]}
+#echo "$NUMBATS batteries."
+
+checkdir /proc/acpi/ac_adapter
+ACDATA=(`ls -1 /proc/acpi/ac_adapter/`)
+AC=${ACDATA[0]}
+    
+checkfile "/proc/acpi/ac_adapter/$AC/state"
+
+
+if [ `grep "on-line" "/proc/acpi/ac_adapter/$AC/state" | wc -l` -eq 0 ]; then
+    BATSTATUS="discharging."
+else
+    if [ $CURCAPACITY -eq $MAXCAPACITY ]; then
+	BATSTATUS="charged."
+    else
+	BATSTATUS="charging."
+    fi
+fi
+
+for((I = 0; I < $NUMBATS; I++)); do
+
+    BAT=${BATTERY[$I]}
+
+    checkdir "/proc/acpi/battery/$BAT"
+    checkfile "/proc/acpi/battery/$BAT/info"
+    checkfile "/proc/acpi/battery/$BAT/state"
+
+    cd "/proc/acpi/battery/$BAT/"
+
+    VALUETYPE=`head -n 3 info | tail -n 1 | cut -d " " -f 10`
+
+    echo -n "$BAT: "
+
+    if [ ! "$VALUETYPE" ]; then
+    	echo "Not connected."
+    else
+	MAXCAPACITY=`head -n 3 info | tail -n 1 | cut -d " " -f 9`
+	CURCAPACITY=`head -n 5 state | tail -n 1 | cut -d " " -f 8` 
+        let PERCENT=100*$CURCAPACITY/$MAXCAPACITY
+	echo "$PERCENT% ($CURCAPACITY $VALUETYPE) power, $BATSTATUS"
+    fi
+
+done
