@@ -2,8 +2,8 @@
 # Import sequential filenames. Uses imlib2_bgrab or convert.
 
     dst=$(pwd)
- prefix="screenshot-"
-timefmt="%y%m%d"
+ prefix="screenshot"
+timefmt="-%y%m%d-"
  numfmt="%03d"
 postfix=
  suffix="jpg"
@@ -20,10 +20,10 @@ usage() {
 	echo "-P <postfix>  set postfix            (default: \"$postfix\")"
 	echo "-n <numfmt>   set number format      (default: \"$numfmt\")"
 	echo "-s <suffix>   set suffix             (default: \"$suffix\")"
-	echo -e "\nOutput file will be <dst>/<prefix><timefmt><postfix>-<num>.<suffix>, eg"
+	echo -e "\nOutput file will be <dst>/<prefix><timefmt>-<num><postfix>.<suffix>, eg"
 
-	printf "%s/%s%s-$numfmt%s.%s\n\n" \
-	       "$dst" "$prefix" "$timestr" "$postfix" "$postfix" 1 $suffix
+	printf "%s/%s%s$numfmt%s.%s\n\n" \
+	       "$dst" "$prefix" "$timestr" 1 "$postfix" "$suffix"
 }
 
 while [ $# -gt 0 ]; do 
@@ -40,7 +40,7 @@ while [ $# -gt 0 ]; do
 	shift
 done
 	
-beg=$(printf "%s/%s%s%s-" "$dst" "$prefix" "$timestr")
+beg=$(printf "%s/%s%s" "$dst" "$prefix" "$timestr")
 
 let num=(1 + $(ls "$beg"*"$postfix.$suffix" 2>/dev/null | wc -l))
 
