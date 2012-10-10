@@ -1,5 +1,21 @@
 #!/bin/bash
-# Import sequential filenames. Uses imlib2_bgrab or convert.
+# A really simple but versatile screenshot generator which produces neat, 
+# sequentially named files.
+#
+# Copyright (C) 2012 Kristian Gunstone
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
     dst=$(pwd)
  prefix="screenshot"
@@ -11,7 +27,7 @@ postfix=
 timestr=$(date +"$timefmt")
 
 usage() {
-	echo -e "Import sequential filenames\n"
+	echo -e "Simple but versatile screenshot generator\n"
 	echo "Usage: $(basename $0) [options]"
 	echo -e "Example: $(basename $0) -d ~ -e png \n"
 	echo "-d <dst>      set destination path   (default: \$(pwd))"
@@ -20,7 +36,7 @@ usage() {
 	echo "-P <postfix>  set postfix            (default: \"$postfix\")"
 	echo "-n <numfmt>   set number format      (default: \"$numfmt\")"
 	echo "-s <suffix>   set suffix             (default: \"$suffix\")"
-	echo -e "\nOutput file will be <dst>/<prefix><timefmt>-<num><postfix>.<suffix>, eg"
+	echo -e "\nOutput file will be <dst>/<prefix><timefmt><num><postfix>.<suffix>, eg"
 
 	printf "%s/%s%s$numfmt%s.%s\n\n" \
 	       "$dst" "$prefix" "$timestr" 1 "$postfix" "$suffix"

@@ -19,7 +19,7 @@ Uses `ffmpeg`.
 importseq
 ---------
 A really simple but versatile screenshot generator which produces neat, sequentially named files.
-Uses `imlib2\_grab` or `import`, but can easily use any grabbing program you have.
+Uses `imlib2_grab` or `import`, but can easily use any grabbing program you have.
 
 lwatch
 ------
