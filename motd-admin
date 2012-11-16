@@ -1,5 +1,12 @@
 #!/usr/bin/perl
-# MOTD administration script
+# Interactive MOTD administration script
+#
+# A simple to use MOTD tool:
+# - Stores data in an SQLite database, outputs content to clear text file
+# - Uses whichever editor you've set in VISUAL (a la cron)
+# - Somewhat configurable (in code):
+#   wrap width, entry date format, output last N entries
+# - Each entry has a 'type': Info, Warn, Alert
 #
 # Copyright (C) 2009-2012 Kristian Gunstone
 #
@@ -30,12 +37,16 @@ use constant ROOT    => '/var/local/motd-admin';
 use constant DBNAME  => ROOT . '/motd.sqlite3';
 
 use constant {
-    VERSION  => "v0.1.1",
-    DB       => "dbi:SQLite:" . DBNAME,
-    MOTD     => ROOT . "/motd.txt",
-    LINES    => 5,
-    WRAP     =>	80, 
-    TIME_FMT => '%y%m%d'
+    LINES         => 5,
+    WRAP          => 80, 
+    TIME_FMT      => '%y%m%d',
+    STATUS_0_TEXT => "\e[0;31mALERT\e[0m",
+    STATUS_1_TEXT => "\e[0;32mWARN\e[0m ",
+    STATUS_2_TEXT => "\e[0;33mINFO\e[0m ",
+    MOTD          => ROOT . "/motd.txt",
+
+    DB            => "dbi:SQLite:" . DBNAME,
+    VERSION       => "v0.2",
 };
 
 ## Subroutines
@@ -101,6 +112,8 @@ sub set_entry{
 sub get_entry {
     my ($dbh, $id) = @_;
 
+    return undef unless defined $id;
+
     my @res = $dbh->selectrow_array(
         "SELECT 
             strftime('%s', date), type, text
@@ -130,13 +143,16 @@ sub get_latest_entries {
 sub get_latest_entry_id {
 
 	my $dbh = shift;
-	my $value = "";
+	my $id;
 
 	my $ref = get_latest_entries($dbh, 1);
-	$value = @$ref[0]->[0];
-	print "Latest entry: $value\n";
 
-	return $value;
+	if(defined @$ref[0]) {
+		$id = @$ref[0]->[0];
+		print "Latest entry id: $id\n";
+	}
+
+	return $id;
 }
 
 sub get_stdin_opt{
@@ -210,11 +226,9 @@ sub update_hardcopy {
 
     my $buffer = '';
 
-    my %status = (
-		  0 => "\e[0;31mALERT\e[0m",
-		  1 => "\e[0;32mWARN\e[0m ",
-		  2 => "\e[0;33mINFO\e[0m ",
-		 );
+    my %status = (0 => STATUS_0_TEXT,
+		  1 => STATUS_1_TEXT,
+		  2 => STATUS_2_TEXT);
 
     my $ansi_len = length("\e[X;XXm\e[0m");
 
@@ -250,9 +264,9 @@ sub update_hardcopy {
    
 ################################
 
-die DBNAME . " not found.\n" if ! -e DBNAME;
+print "Note: " . DBNAME . " doesn't exist; it will be created.\n" if ! -e DBNAME;
 
-my $dbh = DBI->connect(DB) or die "DB: $!";
+my $dbh = DBI->connect(DB) or die;
 create_table($dbh);
 
 print VERSION . "\n";
@@ -304,7 +318,7 @@ given($sel) {
 		foreach(@$listref) {
 			my ($id, $date, $type, $text) = @$_;
 			$date = strftime(TIME_FMT, localtime($date));
-			print "$id: $date\n  $text\n\n";
+			print "ID $id, Type $type, Date $date:\n  $text\n\n";
 		}
 	}
 
