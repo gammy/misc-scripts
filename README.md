@@ -25,6 +25,10 @@ lwatch
 ------
 Poor man's `watch`.
 
+mehcommits
+------
+The poor man's lolcommits for linux: Automatically take a picture when you've commited to a git repository.
+
 motd-admin
 ----------
 A perl script for creating and managing your motd(message of the day). Data is stored in a SQLite database.
