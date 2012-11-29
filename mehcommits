@@ -62,6 +62,8 @@ if [ "$1" = "install" ] || [ "$1" = "enable" ]; then
 		echo "Creating new post commit hook"
 		printf "%s\n%s" '#!/bin/sh' "$cmd" > .git/hooks/post-commit 
 	fi
+
+	chmod +x .git/hooks/post-commit  
 	exit $?
 fi
 
