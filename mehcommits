@@ -1,0 +1,129 @@
+#!/bin/bash
+# mehcommits by gammy: The poor man's lolcommits (for linux)
+#
+# Usage: Place this script i your PATH, and to set it as a post-commit hook in
+#        it in a git repo, just 'mehcommits install'
+#
+# Depends on: see $deps below
+# Don't worry, it doesn't requite ruby or any gems ;)
+
+workdir="$HOME/.mehcommits"
+  vid_w=640
+  vid_h=480
+vid_dev="/dev/video0"
+vid_drv="v4l2" # Leeeeenuks
+  delay=1 
+ frames=4 # We use the last frame: Some (most) cams need some grace time
+
+# Dependency checking
+deps=(git mplayer convert identify grep cut awk basename)
+count=0
+
+for dep in ${deps[*]}; do
+	if [ ! $(which $dep) ]; then
+		echo "Missing dependency: $dep";
+		((count++))
+	fi
+done
+
+if [ $count -ne 0 ]; then
+	echo "$count dependencies not met"
+	exit 1
+fi
+
+unset count
+
+# Cursory check if we're in a path which is under git control
+git status > /dev/null || exit $?
+
+# Scan for repository root and name 
+# (assumes we know it can be found per above git status)
+cwd="$(pwd)"
+while [ "$(pwd)" != "/" ]; do
+	[ -d ".git" ] && break
+	cd ..
+done
+repo=$(basename $(pwd))
+
+# Install post-commit hook if desired
+# TODO uninstall/disable, but really, it's easy enough to delete it by hand
+if [ "$1" = "install" ] || [ "$1" = "enable" ]; then
+	cmd=$(basename $0)
+	if [ -e .git/hooks/post-commit ]; then
+		if [ $(grep -v '^#' .git/hooks/post-commit | grep "$cmd") ]; then
+			echo "Mehcommits already seems installed "
+		else
+			echo "Appending post commit hook to existing hooks"
+			echo "$cmd" >> .git/hooks/post-commit 
+		fi
+	else
+		echo "Creating new post commit hook"
+		printf "%s\n%s" '#!/bin/sh' "$cmd" > .git/hooks/post-commit 
+	fi
+	exit $?
+fi
+
+cd "$cwd"
+
+# Get commit info which we will annotate to the picture
+msg=$(git log --pretty=oneline --abbrev-commit -1)
+sha=$(echo "$msg" | cut -d ' ' -f 1)
+msg=$(echo "$msg" | cut -d ' ' -f 2-)
+
+# Create work paths
+mkdir -p "$workdir/tmp" > /dev/null 2>&1
+mkdir "$workdir/$repo" > /dev/null 2>&1
+
+echo "** Smile, you ugly fuck"!
+sleep "$delay"
+
+# Take the shot and store as pnm(ppm) to avoid compression
+mplayer -tv driver=$vid_drv:device="$vid_dev":width=$vid_w:height=$vid_h \
+	-vo pnm:outdir="$workdir/tmp" \
+	-frames $frames \
+	tv:// > /dev/null 2>&1
+
+if [ ! $? ]; then
+	echo "mplayer: abnormal exit $?, presumably failed take shot" >&2
+	exit 1
+fi
+
+out_raw=$(ls "$workdir/tmp/" | sort -n | tail -n1)
+out_fin="$sha.jpg"
+
+# Annotate and convert (Thanks http://www.imagemagick.org/Usage/annotating/)
+width=$(identify -format %w "$workdir/tmp/$out_raw")
+
+# Annotate sha on top right to an intermediate file
+convert "$workdir/tmp/$out_raw" \
+	-pointsize 24 \
+	-gravity northeast \
+	-stroke '#000C' -strokewidth 2 -annotate 0 "$sha" \
+	-stroke  none   -fill white    -annotate 0 "$sha" \
+	"$workdir/tmp/intermediate.ppm"
+
+# Annotate message to final result. This doesn't look like I want it to:
+# I don't want a transparent box, I just want the shadow just like I annotate
+# the sha above, however I haven't figured out how to do this with "caption:"
+# or "label:", which is required for word-wrapping. Note however that IM will 
+# set pointsize so as to fit the specified rectangle, which is neat!
+convert -background '#1006' \
+	-fill white \
+	-gravity center \
+	-size ${width}x50 \
+        caption:"$msg" \
+        "$workdir/tmp/intermediate.ppm" \
+	+swap \
+	-gravity south \
+	-composite \
+	"$workdir/$repo/$out_fin"
+
+if [ ! $? ]; then
+	echo "convert: abnormal exit $?" >&2
+	exit 1
+fi
+
+# Clean up temp files
+rm "$workdir/tmp/"*.ppm
+
+echo "-> $workdir/$repo/$out_fin"
