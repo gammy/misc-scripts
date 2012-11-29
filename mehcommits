@@ -1,11 +1,13 @@
 #!/bin/bash
 # mehcommits by gammy: The poor man's lolcommits (for linux)
 #
-# Usage: Place this script i your PATH, and to set it as a post-commit hook in
-#        it in a git repo, just 'mehcommits install'
+# Usage: Place this script i your PATH. To set it as a post-commit hook
+#        inside a git repository, just 'mehcommits install'
+#
+#        You can of course also just run mehcommits manually in a repo.
 #
 # Depends on: see $deps below
-# Don't worry, it doesn't requite ruby or any gems ;)
+# Don't worry, it doesn't require ruby or any gems ;)
 
 workdir="$HOME/.mehcommits"
   vid_w=640
@@ -16,7 +18,7 @@ vid_drv="v4l2" # Leeeeenuks
  frames=4 # We use the last frame: Some (most) cams need some grace time
 
 # Dependency checking
-deps=(git mplayer convert identify grep cut awk basename)
+deps=(git mplayer convert identify grep cut basename printf)
 count=0
 
 for dep in ${deps[*]}; do
@@ -91,7 +93,7 @@ fi
 out_raw=$(ls "$workdir/tmp/" | sort -n | tail -n1)
 out_fin="$sha.jpg"
 
-# Annotate and convert (Thanks http://www.imagemagick.org/Usage/annotating/)
+## Annotate and convert (Thanks http://www.imagemagick.org/Usage/annotating/)
 width=$(identify -format %w "$workdir/tmp/$out_raw")
 
 # Annotate sha on top right to an intermediate file
@@ -123,7 +125,6 @@ if [ ! $? ]; then
 	exit 1
 fi
 
-# Clean up temp files
 rm "$workdir/tmp/"*.ppm
 
 echo "-> $workdir/$repo/$out_fin"
