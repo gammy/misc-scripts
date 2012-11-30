@@ -10,6 +10,7 @@
 # Don't worry, it doesn't require ruby or any gems ;)
 
 workdir="$HOME/.mehcommits"
+ tmpdir="$workdir/.tmp"
   vid_w=640
   vid_h=480
 vid_dev="/dev/video0"
@@ -18,7 +19,7 @@ vid_drv="v4l2" # Leeeeenuks
  frames=4 # We use the last frame: Some (most) cams need some grace time
 
 # Dependency checking
-deps=(git mplayer convert identify grep cut basename printf)
+deps=(git mplayer convert identify grep sort cut basename)
 count=0
 
 for dep in ${deps[*]}; do
@@ -75,15 +76,22 @@ sha=$(echo "$msg" | cut -d ' ' -f 1)
 msg=$(echo "$msg" | cut -d ' ' -f 2-)
 
 # Create work paths
-mkdir -p "$workdir/tmp" > /dev/null 2>&1
+mkdir -p "$tmpdir" > /dev/null 2>&1
 mkdir "$workdir/$repo" > /dev/null 2>&1
+
+out_fin="$workdir/$repo/$sha.jpg"
+
+if [ -e "$out_fin" ]; then
+	echo "Mehcommit already exists for $sha: \"$out_fin\""
+	exit 0
+fi
 
 echo "** Smile, you ugly fuck"!
 sleep "$delay"
 
 # Take the shot and store as pnm(ppm) to avoid compression
 mplayer -tv driver=$vid_drv:device="$vid_dev":width=$vid_w:height=$vid_h \
-	-vo pnm:outdir="$workdir/tmp" \
+	-vo pnm:outdir="$tmpdir" \
 	-frames $frames \
 	tv:// > /dev/null 2>&1
 
@@ -92,31 +100,32 @@ if [ ! $? ]; then
 	exit 1
 fi
 
-out_raw=$(ls "$workdir/tmp/" | sort -n | tail -n1)
-out_fin="$sha.jpg"
+out_raw=$(ls "$tmpdir" | sort -n | tail -n1)
 
 if [ -z "$out_raw" ]; then
 	echo "No image was produced by mplayer, presumably failed to take a shot" >&2
 	exit 1
 fi
 
+out_raw="$tmpdir/$out_raw"
+
 ## Annotate and convert (Thanks http://www.imagemagick.org/Usage/annotating/)
-width=$(identify -format %w "$workdir/tmp/$out_raw")
+width=$(identify -format %w "$out_raw")
 
 # Annotate sha on top right to an intermediate file
-convert "$workdir/tmp/$out_raw" \
+convert "$out_raw" \
 	-pointsize 24 \
 	-gravity northeast \
 	-stroke '#000C' -strokewidth 2 -annotate 0 "$sha" \
 	-stroke  none   -fill white    -annotate 0 "$sha" \
-	"$workdir/tmp/intermediate.ppm"
+	"$tmpdir/intermediate.ppm"
 
 if [ ! $? ]; then
 	echo "convert (stage 1/2): abnormal exit $?" >&2
 	exit 1
 fi
 
-if [ ! -e "$workdir/tmp/intermediate.ppm" ]; then
+if [ ! -e "$tmpdir/intermediate.ppm" ]; then
 	echo "No intermediate image was produced by convert, something went wrong" >&2
 	exit 1
 fi
@@ -131,21 +140,23 @@ convert -background '#1006' \
 	-gravity center \
 	-size ${width}x50 \
         caption:"$msg" \
-        "$workdir/tmp/intermediate.ppm" \
+        "$tmpdir/intermediate.ppm" \
 	+swap \
 	-gravity south \
 	-composite \
-	"$workdir/$repo/$out_fin"
+	"$out_fin"
 
 if [ ! $? ]; then
 	echo "convert (stage 2/2): abnormal exit $?" >&2
 	exit 1
 fi
 
-if [ ! -e "$workdir/$repo/$out_fin" ]; then
+if [ ! -e "$out_fin" ]; then
 	echo "No final image was produced by convert, something went wrong" >&2
 	exit 1
 fi
-rm "$workdir/tmp/"*.ppm
 
-echo "-> $workdir/$repo/$out_fin"
+echo "-> $out_fin"
+
+rm "$tmpdir/"*.ppm
+
