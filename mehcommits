@@ -88,12 +88,17 @@ mplayer -tv driver=$vid_drv:device="$vid_dev":width=$vid_w:height=$vid_h \
 	tv:// > /dev/null 2>&1
 
 if [ ! $? ]; then
-	echo "mplayer: abnormal exit $?, presumably failed take shot" >&2
+	echo "mplayer: abnormal exit $?, presumably failed to take a shot" >&2
 	exit 1
 fi
 
 out_raw=$(ls "$workdir/tmp/" | sort -n | tail -n1)
 out_fin="$sha.jpg"
+
+if [ -z "$out_raw" ]; then
+	echo "No image was produced by mplayer, presumably failed to take a shot" >&2
+	exit 1
+fi
 
 ## Annotate and convert (Thanks http://www.imagemagick.org/Usage/annotating/)
 width=$(identify -format %w "$workdir/tmp/$out_raw")
