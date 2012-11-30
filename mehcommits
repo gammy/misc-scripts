@@ -111,6 +111,16 @@ convert "$workdir/tmp/$out_raw" \
 	-stroke  none   -fill white    -annotate 0 "$sha" \
 	"$workdir/tmp/intermediate.ppm"
 
+if [ ! $? ]; then
+	echo "convert (stage 1/2): abnormal exit $?" >&2
+	exit 1
+fi
+
+if [ ! -e "$workdir/tmp/intermediate.ppm" ]; then
+	echo "No intermediate image was produced by convert, something went wrong" >&2
+	exit 1
+fi
+
 # Annotate message to final result. This doesn't look like I want it to:
 # I don't want a transparent box, I just want the shadow just like I annotate
 # the sha above, however I haven't figured out how to do this with "caption:"
@@ -128,10 +138,14 @@ convert -background '#1006' \
 	"$workdir/$repo/$out_fin"
 
 if [ ! $? ]; then
-	echo "convert: abnormal exit $?" >&2
+	echo "convert (stage 2/2): abnormal exit $?" >&2
 	exit 1
 fi
 
+if [ ! -e "$workdir/$repo/$out_fin" ]; then
+	echo "No final image was produced by convert, something went wrong" >&2
+	exit 1
+fi
 rm "$workdir/tmp/"*.ppm
 
 echo "-> $workdir/$repo/$out_fin"
