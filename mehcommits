@@ -1,13 +1,12 @@
 #!/bin/bash
 # mehcommits by gammy: The poor man's lolcommits (for linux)
+#                      No need for any rubies or gems!
 #
-# Usage: Place this script i your PATH. To set it as a post-commit hook
-#        inside a git repository, just 'mehcommits install'
-#
-#        You can of course also just run mehcommits manually in a repo.
+# Usage: Place this script in your PATH and run it in a git repo.
+#        To set it as a post-commit hook for automatically shooting you when
+#        you make a commit, just 'mehcommits install' in the repository.
 #
 # Depends on: see $deps below
-# Don't worry, it doesn't require ruby or any gems ;)
 
 workdir="$HOME/.mehcommits"
  tmpdir="$workdir/.tmp"
@@ -15,8 +14,8 @@ workdir="$HOME/.mehcommits"
   vid_h=480
 vid_dev="/dev/video0"
 vid_drv="v4l2" # Leeeeenuks
-  delay=1 
- frames=4 # We use the last frame: Some (most) cams need some grace time
+  delay=0      # No delay (takes ages with multiple frames anyway)
+ frames=4      # We use the last frame: Some (most) cams need some grace time
 
 # Dependency checking
 deps=(git mplayer convert identify grep sort cut basename)
@@ -24,7 +23,7 @@ count=0
 
 for dep in ${deps[*]}; do
 	if [ ! $(which $dep) ]; then
-		echo "Missing dependency: $dep";
+		echo "Missing dependency: $dep"
 		((count++))
 	fi
 done
@@ -36,39 +35,35 @@ fi
 
 unset count
 
-# Cursory check if we're in a path which is under git control
-git status > /dev/null || exit $?
-
-# Scan for repository root and name 
-# (assumes we know it can be found per above git status)
-cwd="$(pwd)"
-while [ "$(pwd)" != "/" ]; do
-	[ -d ".git" ] && break
-	cd ..
-done
-repo=$(basename $(pwd))
+# Get the repo root path or bail out if we're not in a repo
+gitroot=$(git rev-parse --show-toplevel) || exit $?
+   repo=$(basename "$gitroot")
 
 # Install post-commit hook if desired
 # TODO uninstall/disable, but really, it's easy enough to delete it by hand
+out_hook="$gitroot/.git/hooks/post-commit";
+
 if [ "$1" = "install" ] || [ "$1" = "enable" ]; then
 	cmd=$(basename $0)
-	if [ -e .git/hooks/post-commit ]; then
-		if [ $(grep -v '^#' .git/hooks/post-commit | grep "$cmd") ]; then
+	if [ -e "$out_hook" ]; then
+		if [ $(grep -v '^#' "$out_hook" | grep "$cmd") ]; then
 			echo "Mehcommits already seems installed "
 		else
 			echo "Appending post commit hook to existing hooks"
-			echo "$cmd" >> .git/hooks/post-commit 
+			echo "$cmd" >> "$out_hook"
 		fi
 	else
 		echo "Creating new post commit hook"
-		printf "%s\n%s" '#!/bin/sh' "$cmd" > .git/hooks/post-commit 
+		printf "%s\n%s\n" '#!/bin/sh' "$cmd" > "$out_hook"
 	fi
 
-	chmod +x .git/hooks/post-commit  
-	exit $?
-fi
+	chmod +x "$out_hook"
 
-cd "$cwd"
+	exit 0
+elif [ "$1" = "uninstall" ] || [ "$1" = "disable" ]; then
+	echo "Not implemented: edit \"$out_hook\" yourself"
+	exit 1
+fi
 
 # Get commit info which we will annotate to the picture
 msg=$(git log --pretty=oneline --abbrev-commit -1)
@@ -159,4 +154,3 @@ fi
 echo "-> $out_fin"
 
 rm "$tmpdir/"*.ppm
-
