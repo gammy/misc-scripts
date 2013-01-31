@@ -1,8 +1,11 @@
 #!/bin/bash
 # Really simple screen recorder
+# Can also record audio if you're using pulseaudio
 #
 # Usage: 
 #       Run the script from a terminal and click on a window.
+# 	If you're using pulseaudio and and want sound, run it with --audio.
+#
 #       Hit 'q' in the terminal when done.
 #
 # To record the root window, click on the root window.
@@ -29,6 +32,11 @@
 fps=20
 
 deps=(ffmpeg xwininfo grep cut awk sed basename mktemp)
+
+if [ "$1" = "--audio" ]; then
+       record_sound=1
+       deps+=(parec sox)
+fi
 
 # Dependency checking
 count=0
@@ -80,7 +88,26 @@ dims=${width}x${height}
 echo -e "\nGeometry for \"${name}\" (${id}) is ${dims}+${offsx}+${offsy}."
 
 name=${name//[^aA-zZ]/_}
-dst=$(mktemp -u $name-XXXX.mkv)
+dst_tpl=$(mktemp -u $name-XXXX)
+dst="$dst_tpl.mkv"
+
+# Sound stuff (pulseaudio only)
+dst_snd="$dst_tpl.wav"
+
+if [ $record_sound ]; then
+	# Get the name of the last-listed pulseaudio monitor
+	pa_mon=$(pacmd list-sources | grep "\.monitor" | sed 's/.*<\(.*\)>/\1/g' | tail -n1)
+	if [ -z "$pa_mon" ]; then
+		echo "Can't find any pulseaudio monitor to get audio from"!
+		record_sound=
+	else
+		echo -e "Using audio from \"$pa_mon\".\n"
+		echo "Launching parec."
+		# Start recording in the background
+		(parec -d "$pa_mon" | sox -t raw -r 44k -sLb 16 -c 2 -  "$dst_snd") &
+		parec_pid=$!
+	fi
+fi
 
 echo -e "Launching ffmpeg.\n"
 
@@ -98,6 +125,14 @@ ffmpeg -loglevel panic \
 && {
 	echo -e "\nFinished:" 
 	du -sh "$dst"
+	if [ $record_sound ]; then
+		kill -s INT $parec_pid
+		du -sh "$dst_snd"
+	fi
 } || { 
 	rm -f $dst
+	if [ $record_sound ]; then
+		kill -s INT $parec_pid
+		rm -f "$dst_snd"
+	fi
 }
