@@ -57,7 +57,7 @@ unset count
 
 name=$(basename $0)
 name=${name//[^aA-zZ]/}
-tmp=$(mktemp -t "$name-XXXXX.tmp")
+tmp=$(mktemp -t "$name-XXXXXX")
 unset name
 
 echo -e "\nClick on the desired window. Its initial geometry is the area being captured.\n"
@@ -88,7 +88,7 @@ dims=${width}x${height}
 echo -e "\nGeometry for \"${name}\" (${id}) is ${dims}+${offsx}+${offsy}."
 
 name=${name//[^aA-zZ]/_}
-dst_tpl=$(mktemp -u $name-XXXX)
+dst_tpl=$(mktemp -u $name-XXXXXX)
 dst="$dst_tpl.mkv"
 
 # Sound stuff (pulseaudio only)
