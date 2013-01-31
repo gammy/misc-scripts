@@ -11,7 +11,7 @@
 # Tweaks: See the fps variable, or the bottom line 
 #         where ffmpeg is executed.
 #
-# Copyright (C) 2010 Kristian Gunstone
+# Copyright (C) 2010-2013 Kristian Gunstone
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -27,7 +27,6 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 fps=20
-qmax=6
 
 deps=(ffmpeg xwininfo grep cut awk sed basename mktemp)
 
@@ -81,14 +80,24 @@ dims=${width}x${height}
 echo -e "\nGeometry for \"${name}\" (${id}) is ${dims}+${offsx}+${offsy}."
 
 name=${name//[^aA-zZ]/_}
-dst=$(mktemp -u $name-XXXX.mpg)
+dst=$(mktemp -u $name-XXXX.mkv)
 
 echo -e "Launching ffmpeg.\n"
 
+# See http://ffmpeg.org/trac/ffmpeg/wiki/x264EncodingGuide for encoding specifics
 ffmpeg -loglevel panic \
        -f x11grab \
-       -r ${fps} \
-       -qmax ${qmax} \
+       -r $fps \
        -s $dims \
        -i :0.0+${offsx},${offsy} \
-       $dst &&  echo -e "\nOutput: $dst" || rm -f $dst
+       -vcodec libx264 \
+       -preset ultrafast \
+       -crf 0 \
+       -threads 0 \
+       $dst \
+&& {
+	echo -e "\nFinished:" 
+	du -sh "$dst"
+} || { 
+	rm -f $dst
+}
