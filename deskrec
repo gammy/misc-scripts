@@ -104,8 +104,9 @@ if [ $record_sound ]; then
 		echo -e "Using audio from \"$pa_mon\".\n"
 		echo "Launching parec."
 		# Start recording in the background
-		(parec -d "$pa_mon" | sox -t raw -r 44k -sLb 16 -c 2 -  "$dst_snd") &
-		parec_pid=$!
+		parec -d "$pa_mon" | sox -t raw -r 44k -sLb 16 -c 2 -  "$dst_snd" &
+		# Get process id of both sox and parec
+		parec_pids="$! $(jobs -p)"
 	fi
 fi
 
@@ -126,13 +127,13 @@ ffmpeg -loglevel panic \
 	echo -e "\nFinished:" 
 	du -sh "$dst"
 	if [ $record_sound ]; then
-		kill -s INT $parec_pid
+		kill $parec_pids
 		du -sh "$dst_snd"
 	fi
 } || { 
 	rm -f $dst
 	if [ $record_sound ]; then
-		kill -s INT $parec_pid
+		kill $parec_pids
 		rm -f "$dst_snd"
 	fi
 }
