@@ -104,7 +104,7 @@ if [ $record_sound ]; then
 		echo -e "Using audio from \"$pa_mon\".\n"
 		echo "Launching parec."
 		# Start recording in the background
-		parec -d "$pa_mon" | sox -t raw -r 44k -sLb 16 -c 2 -  "$dst_snd" &
+		parec -d "$pa_mon" | sox -t raw -r 44k -e signed-integer -Lb 16 -c 2 -  "$dst_snd" &
 		# Get process id of both sox and parec
 		parec_pids="$! $(jobs -p)"
 	fi
@@ -133,7 +133,9 @@ ffmpeg -loglevel panic \
 } || { 
 	rm -f $dst
 	if [ $record_sound ]; then
-		kill $parec_pids
+		# For reasons I don't understand, these pids
+		# are automatically killed if we reach this condition!
+		#kill $parec_pids
 		rm -f "$dst_snd"
 	fi
 }
