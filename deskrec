@@ -70,7 +70,7 @@ xwininfo > $tmp
 # Grab id and name (Although we don't need id anymore!)
 idname=$(grep "Window id" $tmp | cut -d : -f 3)
 id=$(echo $idname | awk '{print $1}')
-name=$(echo $idname | awk '{print $2}' | tr -d \")
+name=$(echo $idname | cut -d ' ' -f 2- | tr -d \")
 unset idname
 
 # Grab width, height
@@ -87,7 +87,9 @@ dims=${width}x${height}
 
 echo -e "\nGeometry for \"${name}\" (${id}) is ${dims}+${offsx}+${offsy}."
 
-name=${name//[^aA-zZ]/_}
+# Not the prettiest, is it :[
+name=$(echo $name | sed 's/[^aA-zZ]/_/g' | tr -s _  | sed 's/^_//' | sed 's/_$//')
+[ -z "$name" ] && name="no-name"
 dst_tpl=$(mktemp -u $name-XXXXXX)
 dst="$dst_tpl.mkv"
 
