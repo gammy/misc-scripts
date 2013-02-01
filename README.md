@@ -14,7 +14,7 @@ A wrapper around avrdude which helps me write a .hex file with ease.
 deskrec
 -------
 A really simple screen capture/grab/record script: capture any window (or the desktop) with a clicketyclick!
-Uses `ffmpeg`.
+Uses `ffmpeg` and optionally pulseaudio/sox to record sound.
 
 importseq
 ---------
