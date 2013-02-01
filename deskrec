@@ -1,18 +1,16 @@
 #!/bin/bash
 # Really simple screen recorder
-# Can also record audio if you're using pulseaudio
+# Can also record audio to a separate file, if you've got pulseaudio
 #
 # Usage: 
-#       Run the script from a terminal and click on a window.
-# 	If you're using pulseaudio and and want sound, run it with --audio.
+# Run the script from a terminal and click on a window.
+# If you use pulseaudio and want sound, use the --audio argument.
+# To stop recording, hit 'q' in the terminal where deskrec is running.
 #
-#       Hit 'q' in the terminal when done.
+# Hitting ^C during recording will remove the output file(s).
+# Note that your computer might be too slow to record it at the desired rate!
 #
-# To record the root window, click on the root window.
-# Hitting ^C during recording will remove the dst file.
-#
-# Tweaks: See the fps variable, or the bottom line 
-#         where ffmpeg is executed.
+# Tweaks: See the fps variable, or the bottom line where ffmpeg is executed.
 #
 # Copyright (C) 2010-2013 Kristian Gunstone
 #
@@ -88,9 +86,9 @@ dims=${width}x${height}
 echo -e "\nGeometry for \"${name}\" (${id}) is ${dims}+${offsx}+${offsy}."
 
 # Not the prettiest, is it :[
-name=$(echo $name | sed 's/[^aA-zZ]/_/g' | tr -s _  | sed 's/^_//' | sed 's/_$//')
-[ -z "$name" ] && name="no-name"
-dst_tpl=$(mktemp -u $name-XXXXXX)
+name=$(echo "$name" | sed 's/[^a-zA-Z]/_/g' | tr -s _  | sed 's/^_//' | sed 's/_$//')
+[ -z "$name" ] && name="noname"
+dst_tpl=$(mktemp -u "$name-XXXXXX")
 dst="$dst_tpl.mkv"
 
 # Sound stuff (pulseaudio only)
@@ -109,6 +107,8 @@ if [ $record_sound ]; then
 		parec -d "$pa_mon" | sox -t raw -r 44k -e signed-integer -Lb 16 -c 2 -  "$dst_snd" &
 		# Get process id of both sox and parec
 		parec_pids="$! $(jobs -p)"
+		# renice -n 20 -p ${parec_pids[0]}
+		# renice -n 20 -p ${parec_pids[1]}
 	fi
 fi
 
@@ -122,7 +122,7 @@ ffmpeg -loglevel panic \
        -i :0.0+${offsx},${offsy} \
        -vcodec libx264 \
        -preset ultrafast \
-       -crf 0 \
+       -crf 18 \
        -threads 0 \
        $dst \
 && {
@@ -137,7 +137,7 @@ ffmpeg -loglevel panic \
 	if [ $record_sound ]; then
 		# For reasons I don't understand, these pids
 		# are automatically killed if we reach this condition!
-		#kill $parec_pids
+		# kill $parec_pids
 		rm -f "$dst_snd"
 	fi
 }
