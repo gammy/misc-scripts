@@ -28,6 +28,9 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 fps=20
+audio_mon="analog"
+#audio_mon="hdmi"
+#audio_mon="headset"
 
 deps=(ffmpeg xwininfo grep cut awk sed basename mktemp)
 
@@ -95,8 +98,14 @@ dst="$dst_tpl.mkv"
 dst_snd="$dst_tpl.wav"
 
 if [ $record_sound ]; then
-	# Get the name of the last-listed pulseaudio monitor
-	pa_mon=$(pacmd list-sources | grep "\.monitor" | sed 's/.*<\(.*\)>/\1/g' | tail -n1)
+	# Get the name of the first-listed pulseaudio monitor matching $audio_mon
+	pa_mon=$(pacmd list-sources | grep "\.monitor" | sed 's/.*<\(.*\)>/\1/g' | grep -i "$audio_mon" | head -n1)
+	if [ -z "$pa_mon" ]; then
+		echo "Can't find any pulseaudio monitor matching \"$audio_mon\", picking any first available monitor."
+		# Get the name of the first-listed pulseaudio monitor
+		pa_mon=$(pacmd list-sources | grep "\.monitor" | sed 's/.*<\(.*\)>/\1/g' | head -n1)
+	fi
+
 	if [ -z "$pa_mon" ]; then
 		echo "Can't find any pulseaudio monitor to get audio from"!
 		record_sound=
