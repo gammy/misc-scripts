@@ -18,7 +18,6 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 use strict;
-use warnings;
 
 use LWP::UserAgent;
 use File::Temp;
@@ -28,13 +27,6 @@ use constant VERSION   => '0.9';
 use constant DOCROOT   => 'http://www.dict.org';
 use constant USERAGENT => 'dict.org query script v' . VERSION . ' by gammy';
 
-my @headers = ('User-Agent: ' . USERAGENT, 
-	       'Referer: '    . DOCROOT);
-my @body;
-
-our $ua = LWP::UserAgent->new(agent   => USERAGENT,
-	                      timeout => 20);
- 
 sub show_version {
 	print USERAGENT . "\n\n";
 }
@@ -82,67 +74,77 @@ if(eval{require Term::Size}){
 
 $term_height--;
 
-my %dict = ('db_val'       => [],
-	    'db_key'       => [],
-	    'strategy_val' => [],
-	    'strategy_key' => []);
+my %dict = ('db_key'   => [], 'db_val'   => [],  
+	    'type_key' => [], 'type_val' => []);
 
-my ($match, $buf, $dbuf, $output, $found, $tmp);
+my ($match, $buf, $dbuf, $output);
 
 my %search = ('query' => $ARGV[$#ARGV]);
 my ($show_help, $show_version);
 
-my $opts = GetOptions("t|type=s"  => \$search{'strategy'}, 
-		      "d|db=s"    => \$search{'database'},
+my $opts = GetOptions("t|type=s"  => \$search{'type'}, 
+		      "d|db=s"    => \$search{'db'},
 		      "h|help"    => \$show_help,
 		      "V|version" => \$show_version);
 
-print "But how can it be anything other than $search{query} ?????????????\n";
-
-if(show_help ==1 ) {
+if(defined $show_help) {
 	show_help();
 	exit;
 }
 
-if($show_version ==1) {
+if(defined $show_version) {
 	show_version();
 	exit;
 }
 
+
 $| = 1;
 
 print "Connecting...";
+our $ua = LWP::UserAgent->new(agent   => USERAGENT,
+	                      timeout => 10);
 my $req = HTTP::Request->new(GET => DOCROOT . "/bin/Dict");
 my $res = $ua->request($req);
 
-die "Request for '@_' failed with " . $res->status_line . "\n" unless $res->is_success;
+die "failed: " . $res->status_line . "\n" unless $res->is_success;
 print "ok.\n";
 $buf = $res->content;
 
-$tmp = $1 if $buf=~m/<select name=\"Strategy\">(.*?)<\/select>/si;
-while($tmp =~ m/value="(.+?)".*?>(.+?)\n/sig){
-    push(@{$dict{strategy_val}}, trim($1));
-    push(@{$dict{strategy_key}}, trim($2));
+# Populate strategy(type) tables
+if($buf =~ m/<select name=\"Strategy\">(.*?)<\/select>/si) {
+	my $type = $1;
+
+	while($type =~ m/value="(.+?)".*?>(.+?)\n/sig){
+	    push(@{$dict{type_val}}, trim($1));
+	    push(@{$dict{type_key}}, trim($2));
+	}
+
+	$search{'type'} = $dict{type_val}[0] if ! defined $search{'type'}; 
 }
-$tmp = $1 if $buf=~m/<select name=\"Database\">(.*?)<\/select>/si;
-while($tmp =~ m/value="(.+?)".*?>(.+?)\n/sig){
-    push(@{$dict{db_val}}, trim($1));
-    push(@{$dict{db_key}}, trim($2));
+
+# Populate db tables
+if($buf =~ m/<select name=\"Database\">(.*?)<\/select>/si) {
+	my $db = $1;
+
+	while($db =~ m/value="(.+?)".*?>(.+?)\n/sig){
+	    push(@{$dict{db_val}}, trim($1));
+	    push(@{$dict{db_key}}, trim($2));
+	}
+
+	$search{'db'} = $dict{db_val}[0] if ! defined $search{'db'};
 }
 
-$tmp = "";
+# Scan aforementioned tables for user-selected type & db
+my $found = 0;
 
-$search{'strategy'} = $dict{strategy_val}[0] if ! defined $search{'strategy'}; 
-$search{'database'} = $dict{db_val}[0] if ! defined $search{'database'};
-
-$found = 0;
 for (@{$dict{db_val}}){
-    if($search{'database'} eq $_){
+    if(/\Q$search{'db'}\E/){
 	    $found = 1;
 	    last;
     }
 }
-if($found == 0){
+
+unless($found){
     print "Valid database strings:\n";
     for (0 .. @{$dict{db_val}}-1) {
 	    my ($k, $v) = ($dict{db_key}[$_],
@@ -153,22 +155,24 @@ if($found == 0){
 }
     
 $found = 0;
-for (@{$dict{strategy_val}}){
-    if($search{'strategy'} eq $_){
+for (@{$dict{type_val}}){
+    if(/\Q$search{'type'}\E/){
 	    $found = 1;
 	    last;
     }
 }
 
-if($found == 0){
+unless($found){
     print "Valid search type strings:\n";
-    for (0 .. @{$dict{strategy_val}}-1) {
-	    my ($k, $v) = ($dict{strategy_key}[$_],
-			   $dict{strategy_val}[$_]);
+    for (0 .. @{$dict{type_val}}-1) {
+	    my ($k, $v) = ($dict{type_key}[$_],
+			   $dict{type_val}[$_]);
 	    printf("%s%s-\t%s\n", $v, " "x(12-length($v)), $k);
     }
     exit;
 }
+
+undef $found;
 
 print "Getting match of \"$search{'query'}\"...";
 
@@ -176,10 +180,10 @@ $req = HTTP::Request->new(POST => DOCROOT . "/bin/Dict");
 $req->content_type('application/x-www-form-urlencoded');
 $req->content("Form=Dict1" . "&" .
 	      "Query=$search{'query'}" . "&" .
-	      "Strategy=$search{'strategy'}" . "&" . 
-	      "Database=$search{'database'}");
+	      "Strategy=$search{'type'}" . "&" . 
+	      "Database=$search{'db'}");
 $res = $ua->request($req);
-die "Request for '@_' failed with $res->status_line\n" unless $res->is_success;
+die "failed: " . $res->status_line . "\n" unless $res->is_success;
 $buf = $res->content;
 
 print "ok\n\n";
