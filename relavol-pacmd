@@ -1,0 +1,77 @@
+#!/bin/bash
+# Adjust master volume with relative and/or percentual values("-5%") 
+# using pacmd
+# By gammy
+
+control="$1"
+arg=$2
+rel=
+
+if [ -z $(which pactl) ]; then
+	echo "Error: pactl not found"
+	exit
+fi
+
+if [ $# -ne 2 ]; then
+	echo "Usage: $(basename $0) <sink shortname> <[-]Volume[%]>"
+	echo "Example: $(basename $0) analog-stereo -10%"
+	exit
+fi
+
+# Obtain sink id
+sink=$(pacmd list-sinks | \
+       grep --max-count=1 --before-context=1 "$control" | \
+       head -n1 | \
+       awk '{ print $NF }')
+
+if [ -z $sink ]; then
+	echo "Error: Cannot find id for sink '$control'"
+	exit 1
+fi
+
+# Obtain current values
+max=$(pacmd list-sinks | \
+      grep --max-count=1 --after-context=15 "$control" | \
+      grep "volume steps" | \
+      cut -d " " -f 3)
+
+# echo "Max volume : $max"
+
+# FIXME assumes left/right volume is identical
+cur=$(pacmd list-sinks | \
+      grep --max-count=1 --after-context=15 "$control" | \
+      grep "front-left" | \
+      cut -d " " -f 3)
+# echo "Current volume: $cur"
+
+# Is the argument relative?
+if [ ${arg:0:1} = "+" ] || [ ${arg:0:1} = "-" ]; then
+	rel=${arg:0:1}
+	arg=${arg:1:${#arg}-1}
+fi
+
+# Is the argument a percentage?
+if [ ${arg:${#arg}-1:1} = "%" ]; then
+	arg="$rel${arg:0:${#arg}-1}"
+	let unit=($max / 100)
+	let arg=($unit * $arg)
+fi
+
+# Relative / Absolute adjust
+if [ ! -z $rel ]; then
+	let new=($cur + $arg);
+else
+	new=$arg
+fi
+
+# Clip
+if [ $new -lt 0 ]; then
+	new=0
+elif [ $new -gt $max ]; then
+	new=$max
+fi
+
+# echo "New volume: $new"
+
+# Set volume
+pacmd set-sink-volume $sink $new
