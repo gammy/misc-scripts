@@ -23,7 +23,7 @@ Uses `imlib2_grab` or `import`, but can easily use any grabbing program you have
 
 lwatch
 ------
-Poor man's `watch`.
+Poor man's `watch`. Useful for embedded systems with busybox, etc, which lack `watch`.
 
 mehcommits
 ------
@@ -37,10 +37,14 @@ qthumb
 ------
 Simple script for batch-converting images; in essence a multi-file wrapper around the imagemagick tool `convert`.
 
-relavol
+relavol-amixer
 -------
-Adjust master volume with relative and/or percentual values("-5%") using `amixer`.
+Adjust master volume with relative and/or percentual/literal values("-5%") using `amixer`.
 Perhaps interesting for people who want to support such a feature on other soundsystems, but actually redundant for amixer since this support is already built into it :p
+
+relavol-pacmd
+-------
+Adjust master volume with relative and/or percentual/literal values("-5%") using `pacmd`. It works like `relavol-amixer`, but requires the sink name as the firsts argument.
 
 updateDynDNS
 ------------
