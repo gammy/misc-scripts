@@ -7,8 +7,8 @@ control="$1"
 arg=$2
 rel=
 
-if [ -z $(which pactl) ]; then
-	echo "Error: pactl not found"
+if [ -z $(which pacmd) ]; then
+	echo "Error: pacmd not found"
 	exit
 fi
 
