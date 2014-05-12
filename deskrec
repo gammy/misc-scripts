@@ -29,14 +29,43 @@
 
 fps=20
 audio_mon="analog"
+dst_path="."
 #audio_mon="hdmi"
 #audio_mon="headset"
 
 deps=(ffmpeg xwininfo grep cut awk sed basename mktemp)
 
-if [ "$1" = "--audio" ]; then
-       record_sound=1
-       deps+=(parec sox)
+usage() {
+	echo -e "Really simple screen recorder\n"
+	echo "Usage: $(basename $0) [options]"
+	echo -e "Example: $(basename $0) -a -f 30\n"
+	echo "-d <dst>      set destination path       (default: \$(pwd))"
+	echo "-a            Use pa&sox to record audio (default: off)"
+	echo "-s <sink>     Use audio sink <sink>      (default: \"$audio_mon\")"
+	echo "-f <fps>      Set framerate              (default: $fps)"
+	echo
+
+}
+
+while [ $# -gt 0 ]; do 
+	case "$1" in
+		-d) dst_path="$2";;
+		-a) record_sound=1
+		    deps+=(parec sox);;
+		-s) audio_mon="$2";;
+		-f) fps="$2";;
+		-h) usage
+		    exit 0;;
+	esac
+	shift
+done
+
+#echo "FPS: $fps, Dest: \"$dst_path\", Sink: \"$audio_mon\""
+
+# Path check
+if [ ! -d "$dst_path" ]; then
+	echo "Error: Cannot open destination path \"$dst_path\"" >&2
+	exit 1
 fi
 
 # Dependency checking
@@ -56,6 +85,7 @@ fi
 
 unset count
 
+# Make a fancy name for our temp files
 name=$(basename $0)
 name=${name//[^aA-zZ]/}
 tmp=$(mktemp -t "$name-XXXXXX")
@@ -92,22 +122,22 @@ echo -e "\nGeometry for \"${name}\" (${id}) is ${dims}+${offsx}+${offsy}."
 name=$(echo "$name" | sed 's/[^a-zA-Z]/_/g' | tr -s _  | sed 's/^_//' | sed 's/_$//')
 [ -z "$name" ] && name="noname"
 dst_tpl=$(mktemp -u "$name-XXXXXX")
-dst="$dst_tpl.mkv"
+dst="$dst_path/$dst_tpl.mkv"
 
 # Sound stuff (pulseaudio only)
-dst_snd="$dst_tpl.wav"
+dst_snd="$dst_path/$dst_tpl.wav"
 
 if [ $record_sound ]; then
 	# Get the name of the first-listed pulseaudio monitor matching $audio_mon
 	pa_mon=$(pacmd list-sources | grep "\.monitor" | sed 's/.*<\(.*\)>/\1/g' | grep -i "$audio_mon" | head -n1)
 	if [ -z "$pa_mon" ]; then
-		echo "Can't find any pulseaudio monitor matching \"$audio_mon\", picking any first available monitor."
+		echo "Error: Can't find any pulseaudio monitor matching \"$audio_mon\", picking any first available monitor." >&2
 		# Get the name of the first-listed pulseaudio monitor
 		pa_mon=$(pacmd list-sources | grep "\.monitor" | sed 's/.*<\(.*\)>/\1/g' | head -n1)
 	fi
 
 	if [ -z "$pa_mon" ]; then
-		echo "Can't find any pulseaudio monitor to get audio from"!
+		echo "Error: Can't find any pulseaudio monitor to get audio from"! >&2
 		record_sound=
 	else
 		echo -e "Using audio from \"$pa_mon\".\n"
@@ -142,11 +172,11 @@ ffmpeg -loglevel panic \
 		du -sh "$dst_snd"
 	fi
 } || { 
-	rm -f $dst
+	rm -fi $dst
 	if [ $record_sound ]; then
 		# For reasons I don't understand, these pids
 		# are automatically killed if we reach this condition!
 		# kill $parec_pids
-		rm -f "$dst_snd"
+		rm -fi "$dst_snd"
 	fi
 }
