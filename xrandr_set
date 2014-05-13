@@ -1,0 +1,40 @@
+#!/bin/bash
+# Execute xrandr (or any) config and symlink last 
+# successfully executed script to a default file. 
+# I call this with hardcoded parameters in my wm, eg
+#
+# Work Layout: xrandr_set work
+# Home Layout: xrandr_set home
+#
+# And on login, I run "xrandr_set default"
+
+   script_path="$HOME/.screenlayout" # arandr default
+script_default="$script_path/default.sh"
+
+if [ $# -ne 1 ]; then
+	echo -e "\nUsage: $0 <arandr profile script>"
+	echo "Example: $0 work"
+	echo -en "\nProfiles \"$script_path\": "
+
+	scripts=()
+	for f in $(find "$script_path" -iname "*.sh"); do
+		scripts+=($(basename $f .sh))
+	done
+	echo ${scripts[@]}
+
+	echo -e "\nThe script name 'default' links to the last set profile."
+	exit 0
+fi
+
+script="$script_path/${1}.sh"
+
+$script
+
+ret=$?
+
+if [ $ret -eq 0 ]; then
+	[[ -L "$script_default" ]] && rm -vf "$script_default"
+	ln -sv "$script" "$script_default"
+fi
+
+exit $ret
