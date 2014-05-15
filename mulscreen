@@ -1,0 +1,35 @@
+#!/bin/bash
+
+if [ $# -lt 2 ]; then
+	echo -e "Create a screen and add one or more windows to it in a "
+	echo "detached state"
+	echo "Usage: $0 <screen name> \"<command>\" [\"command\"] [...]"
+	echo "Example: $0 services \"watch ls\" \"tail -f /var/log/messages\""
+	exit 0
+fi
+
+name=$1
+shift
+
+screen_launch() {
+
+	echo "$1 -> [$name]"
+	screen -S $name -d -m $1
+
+	shift
+
+	for c in "$@"; do
+		echo "$c -> [$name]"
+		screen -dr $name -X screen $c
+	done
+
+}
+
+if ! $(screen -ls $name | grep "No Sockets" > /dev/null 2>&1); then
+	echo -n "Fatal: Screen with name \"$name\" already exists. "
+	echo "I'd better not add windows to it:"
+	screen -ls $name
+	exit 1
+fi
+
+screen_launch "$@"
