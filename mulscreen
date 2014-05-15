@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [ $# -lt 2 ]; then
-	echo -e "Create a screen and add one or more windows to it in a "
+	echo -n "Create a screen and add one or more windows to it in a "
 	echo "detached state"
 	echo "Usage: $0 <screen name> \"<command>\" [\"command\"] [...]"
 	echo "Example: $0 services \"watch ls\" \"tail -f /var/log/messages\""
