@@ -1,13 +1,5 @@
 #!/bin/bash
 
-screen_check() {
-	if [ $1 -ne 0 ]; then
-		echo -ne "Error: screen terminated unexpectedly ($1): "
-	        echo "exiting without cleanup."
-		exit $1
-	fi
-}
-
 screen_launch() {
 	echo "$1 -> [$name]"
 	shift
@@ -15,7 +7,11 @@ screen_launch() {
 	screen $@
 	ret=$?
 
-	screen_check $ret
+	if [ $ret -ne 0 ]; then
+		echo -ne "Error: screen terminated unexpectedly ($ret): "
+	        echo "exiting without cleanup."
+		exit $ret
+	fi
 }
 
 if [ $# -lt 2 ]; then
