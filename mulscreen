@@ -1,29 +1,34 @@
 #!/bin/bash
 
+screen_check() {
+	if [ $1 -ne 0 ]; then
+		echo -ne "Error: screen terminated unexpectedly ($1): "
+	        echo "exiting without cleanup."
+		exit $1
+	fi
+}
+
+screen_launch() {
+	echo "$1 -> [$name]"
+	shift
+
+	screen $@
+	ret=$?
+
+	screen_check $ret
+}
+
 if [ $# -lt 2 ]; then
-	echo -n "Create a screen and add one or more windows to it in a "
-	echo "detached state"
-	echo "Usage: $0 <screen name> \"<command>\" [\"command\"] [...]"
-	echo "Example: $0 services \"watch ls\" \"tail -f /var/log/messages\""
+	n=$(basename $0)
+	echo -ne "\nCreate a screen and add one or more windows to it in a "
+	echo -e "detached state\n"
+	echo "Usage: $n <screen name> \"<command>\" [\"command\"] [...]"
+	echo -e "Example: $n services \"watch ls\" \"tail -f /var/log/\"\n"
 	exit 0
 fi
 
 name=$1
 shift
-
-screen_launch() {
-
-	echo "$1 -> [$name]"
-	screen -S $name -d -m $1
-
-	shift
-
-	for c in "$@"; do
-		echo "$c -> [$name]"
-		screen -dr $name -X screen $c
-	done
-
-}
 
 if ! $(screen -ls $name | grep "No Sockets" > /dev/null 2>&1); then
 	echo -n "Fatal: Screen with name \"$name\" already exists. "
@@ -32,4 +37,10 @@ if ! $(screen -ls $name | grep "No Sockets" > /dev/null 2>&1); then
 	exit 1
 fi
 
-screen_launch "$@"
+screen_launch "$1" -S $name -d -m $1
+
+shift
+
+for c in "$@"; do
+	screen_launch "$c" -dr $name -X screen $c
+done
