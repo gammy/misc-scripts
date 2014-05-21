@@ -32,7 +32,8 @@ $script
 
 ret=$?
 
-if [ $ret -eq 0 ]; then
+if [[ "$1" != "default" ]] && \
+   [[ $(readlink "$script_default") != "$script" ]]; then
 	[[ -L "$script_default" ]] && rm -vf "$script_default"
 	ln -sv "$script" "$script_default"
 fi
