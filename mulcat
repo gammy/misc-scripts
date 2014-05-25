@@ -1,0 +1,57 @@
+#!/bin/bash
+# Automatically concatenate split files using only the original
+# filename and an index. Ie 
+# `file_cat foo.mp4 1` concatenates 
+# foo.mp4.001
+# foo.mp4.002
+# foo.mp4.003
+# into
+# foo.mp4
+
+delimiter='.'
+
+if [ $# -lt 1 ]; then
+	m="$(basename $0)"
+	echo "Usage: $m <file prefix> [offset]"
+	echo "Example: $m foo.mp4 0"
+	exit 0
+fi
+
+   in="$1"
+index=0
+
+[ ! -z $2 ] && index=$2
+
+if [ -e "$in" ]; then
+	echo "\"$in\" already exists."
+	exit 0
+fi
+
+     file_count=$(ls "$in"* | wc -l)
+      file_last=$(ls "$in"* | tail -n1 | awk -F "$delimiter" '{print $NF}') 
+file_last_index=$(expr "$file_last" + 0) # Zero-pad the string (083->83)
+      pad_count=${#file_last}
+
+if [ $file_count -ne $file_last ]; then
+	echo "File count doesn't match last index: $file_count files," \
+	     "but last file index is $file_last_index"
+	exit 1
+fi
+
+echo -e "Concatenating ${in}.{${index}..${file_last}}\n"
+
+for (( x=$index; x < $file_last_index; x++ )); do
+	pad_seq="%0${pad_count}d"
+	src=$(printf "%s.$pad_seq" \
+	      "$in" \
+	      $x)
+
+	pad_seq="%${pad_count}d"
+	printf "%s >> %s $pad_seq/%s\n" \
+	       "$src" \
+	       "$in" \
+	       $x \
+	       $file_last_index
+
+	cat "$src" >> "$in"
+done
