@@ -11,10 +11,18 @@ avr\_write
 ---------
 A wrapper around avrdude which helps me write a .hex file with ease.
 
+bp
+---
+_"An ACPI battery and AC-power status script. Requires /proc, ACPI support, `bash`, `head`, `tail`, `sed`, `grep` and `wc`. Should now work on systems where battery isn't named BATx and adapter ACAD. Also works with batteries that don't report in mAh. Supports multiple batteries."_
+
 deskrec
 -------
 A really simple screen capture/grab/record script: capture any window (or the desktop) with a clicketyclick!
 Uses `ffmpeg` and optionally pulseaudio/sox to record sound.
+
+dictorg
+-------
+_"Dictorg is a basic dict.org parser script for console use. It is written in perl and uses LWP(since 0.8) to access dict.org."_
 
 importseq
 ---------
@@ -33,6 +41,14 @@ motd-admin
 ----------
 A perl script for creating and managing your motd(message of the day). Data is stored in a SQLite database.
 
+mulcat
+------
+Automatically concatenate split files using only the original filename and an index. Ie `file_cat foo.mp4 1` concatenates `foo.mp4.001`, `foo.mp4.002`, `foo.mp4.003` into `foo.mp4`.
+
+mulscreen
+---------
+Create a screen and add one or more windows to it in a detached state.
+
 qthumb
 ------
 Simple script for batch-converting images; in essence a multi-file wrapper around the imagemagick tool `convert`.
@@ -50,12 +66,6 @@ updateDynDNS
 ------------
 _"This script allows you to easily update the DNS entries for your domains on Loopia. It reads a file consisting of a list of domains, and can take a new IP as argument. If suppressed, it will try to determine the IP on its own._"
 
-dictorg
--------
-_"Dictorg is a basic dict.org parser script for console use. It is written in perl and uses LWP(since 0.8) to access dict.org."_
-
-
-bp
----
-_"An ACPI battery and AC-power status script. Requires /proc, ACPI support, `bash`, `head`, `tail`, `sed`, `grep` and `wc`. Should now work on systems where battery isn't named BATx and adapter ACAD. Also works with batteries that don't report in mAh. Supports multiple batteries"_
-
+xrandr\_set
+-----------
+Execute `xrandr` (or any) config and symlink last successfully executed script to a default file. I call this with hardcoded parameters in my wm, eg `xrandr_set work` for work, and `xrandr_set home` for home. On login I run `xrandr_set default` to use the last set configuration.
