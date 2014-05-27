@@ -24,6 +24,10 @@ dictorg
 -------
 _"Dictorg is a basic dict.org parser script for console use. It is written in perl and uses LWP(since 0.8) to access dict.org."_
 
+gvim-quake
+----------
+A script which makes a special instance of `gvim` act like a quake or tilda terminal, but without the animation.
+
 importseq
 ---------
 A really simple but versatile screenshot generator which produces neat, sequentially named files.
