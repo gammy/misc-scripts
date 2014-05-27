@@ -8,7 +8,7 @@
 # If you want to hide the menubar and so on, then do that via gvim, ie
 # gvim-quake --cmd "set guioptions-=m" --cmd "set guioptions-=T"
 
-    title=gvimAS # May be 8 characters long
+    title=gvimFS # May be 8 characters long
   crap_wm=1      # If your wm doesn't like the fullscreen property
 is_sticky=1      # If you want gvim-quake to be on all desktops
 gracetime=0.5    # gvim backgrounds immediately before creating an X window,
