@@ -1,0 +1,36 @@
+#!/bin/bash
+# Cheap, Quake-terminal-like gvim.
+# The first time this is run, it starts gvim with any arguments passed, 
+# and sets a few window properties for fullscreening gvim. If called again
+# and if gvim with $title is found, it toggles said properties.
+#
+# I myself bind this script to a keychain (Mod1 V) to toggle its visibility.
+
+    title=gvimFS # May be 8 characters long
+  crap_wm=1      # If your wm doesn't work like the fullscreen property
+is_sticky=1      # If you want gvim-quake to be on all desktops
+grace_time=0.5   # gvim backgrounds immediately before creating an X window,
+                 # so we unfortunately need some grace time before trying to
+                 # toggle its properties. Fortunately we usually only start
+                 # gvim once.
+
+if ! which wmctrl > /dev/null 2>&1; then
+	echo "Missing dependency: wmctrl"
+	exit 1
+fi
+
+if ps auxw 2>&1 | grep "$title" | grep -v grep > /dev/null; then
+	wmctrl -r "$title" -b toggle,hidden
+else
+	gvim --cmd "set titlestring=${title}" $* && \
+	     sleep $grace_time || exit $?
+fi
+
+if [ $crap_wm ]; then
+	wmctrl -r "$title" -b toggle,maximized_vert,maximized_horz
+	wmctrl -r "$title" -b toggle,above
+	[ $is_sticky ] && wmctrl -r "$title" -b toggle,sticky
+else 
+	wmctrl -r "$title" -b toggle,fullscreen
+	[ $is_sticky ] && wmctrl -r "$title" -b toggle,sticky
+fi
