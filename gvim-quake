@@ -8,9 +8,13 @@
 # If you want to hide the menubar and so on, then do that via gvim, ie
 # gvim-quake --cmd "set guioptions-=m" --cmd "set guioptions-=T"
 
-    title=gvimFS # May be 8 characters long
+    title=gvimAS # May be 8 characters long
   crap_wm=1      # If your wm doesn't like the fullscreen property
 is_sticky=1      # If you want gvim-quake to be on all desktops
+gracetime=0.5    # gvim backgrounds immediately before creating an X window,
+                 # so we unfortunately need some grace time before trying to
+                 # toggle its properties. Fortunately we usually only start
+                 # gvim once. Note that gvim --nofork won't resolve this.
 
 if ! which wmctrl > /dev/null 2>&1; then
 	echo "Missing dependency: wmctrl"
@@ -21,7 +25,7 @@ if ps auxw 2>&1 | grep "$title" | grep -v grep > /dev/null; then
 	wmctrl -r "$title" -b toggle,hidden
 	exit $?
 else
-	gvim --nofork --cmd "set titlestring=$title" "$@" || exit $?
+	gvim --cmd "set titlestring=$title" "$@" && sleep $gracetime || exit $?
 fi
 
 if [ $crap_wm ]; then
