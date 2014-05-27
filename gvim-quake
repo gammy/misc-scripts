@@ -21,6 +21,7 @@ fi
 
 if ps auxw 2>&1 | grep "$title" | grep -v grep > /dev/null; then
 	wmctrl -r "$title" -b toggle,hidden
+	exit $?
 else
 	gvim --cmd "set titlestring=${title}" $* && \
 	     sleep $grace_time || exit $?
