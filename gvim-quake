@@ -5,6 +5,8 @@
 # and if gvim with $title is found, it toggles said properties.
 #
 # I myself bind this script to a keychain (Mod1 V) to toggle its visibility.
+# If you want to hide the menubar and so on, then do that via gvim, ie
+# gvim-quake --cmd "set guioptions-=m" --cmd "set guioptions-=T"
 
     title=gvimFS # May be 8 characters long
   crap_wm=1      # If your wm doesn't work like the fullscreen property
@@ -23,7 +25,7 @@ if ps auxw 2>&1 | grep "$title" | grep -v grep > /dev/null; then
 	wmctrl -r "$title" -b toggle,hidden
 	exit $?
 else
-	gvim --cmd "set titlestring=${title}" $* && \
+	gvim --cmd "set titlestring=${title}" "$@" && \
 	     sleep $grace_time || exit $?
 fi
 
