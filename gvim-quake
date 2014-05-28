@@ -21,7 +21,7 @@ count=0
 
 for dep in ${deps[*]}; do
 	if ! which $dep > /dev/null 2>&1; then
-		echo "Missing dependency: $dep"
+		echo "Missing dependency: $dep" >2&1
 		((count++))
 	fi
 done
@@ -32,6 +32,7 @@ if [ $count -ne 0 ]; then
 fi
 
 unset count
+unset deps
 
 if ps auxw 2>&1 | grep "$title" | grep -v grep > /dev/null; then
 	wmctrl -r "$title" -b toggle,hidden
