@@ -8,44 +8,32 @@
 # If you want to hide the menubar and so on, then do that via gvim, ie
 # gvim-quake --cmd "set guioptions-=m" --cmd "set guioptions-=T"
 
-     title=gvimFS # May be 8 characters long
-   crap_wm=1      # If your wm doesn't like the fullscreen property
- is_sticky=1      # If you want gvim-quake to be on all desktops
-tries_left=20
-
-is_running() {
-	ps auxw 2>&1 | grep "$1" | grep -v grep > /dev/null
-}
+    title=gvimFS # May be 8 characters long
+  crap_wm=1      # If your wm doesn't like the fullscreen property
+is_sticky=1      # If you want gvim-quake to be on all desktops
+gracetime=0.5    # gvim backgrounds immediately before creating an X window,
+                 # so we unfortunately need some grace time before trying to
+                 # toggle its properties. Fortunately we usually only start
+                 # gvim once. Note that gvim --nofork won't resolve this.
 
 if ! which wmctrl > /dev/null 2>&1; then
 	echo "Missing dependency: wmctrl"
 	exit 1
 fi
 
-if is_running "$title"; then
+if ps auxw 2>&1 | grep "$title" | grep -v grep > /dev/null; then
 	wmctrl -r "$title" -b toggle,hidden
 	exit $?
 else
-	gvim --cmd "set titlestring=$title" "$@" || exit $?
-
-	until is_running "$title" || [ $tries_left -eq 0 ]; do
-		sleep 0.1
-		let tries_left=$tries_left-1
-	done
-
-	if [ $tries_left -eq 0 ]; then
-		echo "Error: gvim failed to start" >&2
-		exit 1
-	fi
-
+	gvim --cmd "set titlestring=$title" "$@" && sleep $gracetime || exit $?
 fi
+	
+[ $is_sticky ] && wmctrl -r "$title" -b toggle,sticky
 
 if [ $crap_wm ]; then
 	wmctrl -r "$title" -b toggle,maximized_vert,maximized_horz
 	wmctrl -r "$title" -b toggle,above
-	[ $is_sticky ] && wmctrl -r "$title" -b toggle,sticky
 else 
 	wmctrl -r "$title" -b toggle,fullscreen
-	[ $is_sticky ] && wmctrl -r "$title" -b toggle,sticky
 fi
 
