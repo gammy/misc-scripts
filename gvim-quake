@@ -11,21 +11,44 @@
     title=gvimFS # May be 8 characters long
   crap_wm=1      # If your wm doesn't like the fullscreen property
 is_sticky=1      # If you want gvim-quake to be on all desktops
-gracetime=0.5    # gvim backgrounds immediately before creating an X window,
-                 # so we unfortunately need some grace time before trying to
-                 # toggle its properties. Fortunately we usually only start
-                 # gvim once. Note that gvim --nofork won't resolve this.
+tries_left=20    # gvim backgrounds immediately before creating an X window,
+                 # so we need to wait for the window to appear before toggling 
+                 # its properties. Fortunately we usually only do this if
+                 # a gvim $title isn't already running.
 
-if ! which wmctrl > /dev/null 2>&1; then
-	echo "Missing dependency: wmctrl"
+deps=(gvim wmctrl xprop)
+count=0
+
+for dep in ${deps[*]}; do
+	if ! which $dep > /dev/null 2>&1; then
+		echo "Missing dependency: $dep"
+		((count++))
+	fi
+done
+
+if [ $count -ne 0 ]; then
+	echo "Error: $count dependencies not met" >&2
 	exit 1
 fi
+
+unset count
 
 if ps auxw 2>&1 | grep "$title" | grep -v grep > /dev/null; then
 	wmctrl -r "$title" -b toggle,hidden
 	exit $?
 else
-	gvim --cmd "set titlestring=$title" "$@" && sleep $gracetime || exit $?
+	gvim --cmd "set titlestring=$title" "$@" || exit $?
+
+	until xprop -name "$title" > /dev/null 2>&1 || [ $tries_left -eq 0 ]; do
+		sleep 0.1
+		((tries_left--))
+	done
+
+	if [ $tries_left -eq 0 ]; then
+		echo "Error: Can't find a \"$title\" X window" >&2
+		exit 1
+	fi
+
 fi
 	
 [ $is_sticky ] && wmctrl -r "$title" -b toggle,sticky
