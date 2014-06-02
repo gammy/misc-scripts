@@ -9,6 +9,9 @@
 # foo.mp4
 
 delimiter='.'
+   filter="\\$delimiter[0-9]*\$"
+    index=1
+       in="$1"
 
 if [ $# -lt 1 ]; then
 	m="$(basename $0)"
@@ -17,27 +20,26 @@ if [ $# -lt 1 ]; then
 	exit 0
 fi
 
-   in="$1"
-index=1
-
 [ ! -z $2 ] && index=$2
+
 
 if [ -e "$in" ]; then
 	echo "\"$in\" already exists."
 	exit 0
 fi
 
-file_count=$(ls "$in"* | grep -e "\.[0-9]*$" | wc -l)
+       cmd='ls "$in"* | grep -e "'$filter'"'
+file_count=$(eval $cmd | wc -l)
 
 [ $file_count = 0 ] && exit 1
 
-      file_last=$(ls "$in"* | grep -e "\.[0-9]*$" | tail -n1 | awk -F "$delimiter" '{print $NF}') 
+      file_last=$(eval $cmd | tail -n1 | awk -F "$delimiter" '{print $NF}') 
 file_last_index=$(expr "$file_last" + 0) # Zero-pad the string (083->83)
       pad_count=${#file_last}
 
 if [ $file_count -ne $file_last ]; then
-	echo "File count doesn't match last index: $file_count files," \
-	     "but last file index is $file_last_index"
+	echo "Error: File count doesn't match last index: $file_count files," \
+	     "but last file index is $file_last_index" >2
 	exit 1
 fi
 
