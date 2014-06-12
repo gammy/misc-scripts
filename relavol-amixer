@@ -7,7 +7,7 @@ control="Master"
 arg=$1
 rel=
 
-if [ -z $(which amixer) ]; then
+if ! which amixer > /dev/null 2>&1; then
 	echo "Error: amixer not found"
 	exit
 fi

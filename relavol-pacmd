@@ -7,7 +7,7 @@ control="$1"
 arg=$2
 rel=
 
-if [ -z $(which pacmd) ]; then
+if ! which pacmd > /dev/null 2>&1; then
 	echo "Error: pacmd not found"
 	exit
 fi

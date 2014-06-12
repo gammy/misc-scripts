@@ -22,7 +22,7 @@ deps=(git mplayer convert identify grep sort cut basename)
 count=0
 
 for dep in ${deps[*]}; do
-	if [ ! $(which $dep) ]; then
+	if ! which $dep > /dev/null 2>&1; then
 		echo "Missing dependency: $dep"
 		((count++))
 	fi
