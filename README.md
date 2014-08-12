@@ -70,6 +70,10 @@ updateDynDNS
 ------------
 _"This script allows you to easily update the DNS entries for your domains on Loopia. It reads a file consisting of a list of domains, and can take a new IP as argument. If suppressed, it will try to determine the IP on its own._"
 
+xe
+--
+A console script which uses (http://xe.com "xe.com") to convert one currency to another. Arithmetic is allowed in the currency amount, eg `xe 12.5*2 usd eur`.
+
 xrandr\_set
 -----------
 Execute `xrandr` (or any) config and symlink last successfully executed script to a default file. I call this with hardcoded parameters in my wm, eg `xrandr_set work` for work, and `xrandr_set home` for home. On login I run `xrandr_set default` to use the last set configuration.
