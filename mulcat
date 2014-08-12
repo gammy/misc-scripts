@@ -24,7 +24,7 @@ fi
 
 
 if [ -e "$in" ]; then
-	echo "\"$in\" already exists."
+	echo "\"$in\" already exists"
 	exit 0
 fi
 
@@ -39,7 +39,7 @@ file_last_index=$(expr "$file_last" + 0) # Zero-pad the string (083->83)
 
 if [ $file_count -ne $file_last ]; then
 	echo "Error: File count doesn't match last index: $file_count files," \
-	     "but last file index is $file_last_index" >2
+	     "but last file index is $file_last_index" >&2
 	exit 1
 fi
 

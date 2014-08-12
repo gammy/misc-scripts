@@ -9,7 +9,7 @@
 # gvim-quake --cmd "set guioptions-=m" --cmd "set guioptions-=T"
 
     title=gvimFS # May be 8 characters long
-  crap_wm=1      # If your wm doesn't like the fullscreen property
+  crap_wm=0      # If your wm doesn't like the fullscreen property
 is_sticky=1      # If you want gvim-quake to be on all desktops
 tries_left=20    # gvim backgrounds immediately before creating an X window,
                  # so we need to wait for the window to appear before toggling 
