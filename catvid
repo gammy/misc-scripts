@@ -1,0 +1,34 @@
+#!/bin/bash
+# Automatically concatenate video files 
+
+trap boom ERR
+
+boom() {
+	rm -f "$list"
+}
+
+suffix="$1"
+   out="$2"
+
+if [ $# -lt 1 ]; then
+	m="$(basename $0)"
+	echo "Usage: $m <file suffix> <output>"
+	echo "Example: $m mp4 output"
+	echo "(suffix is automatically appended to output, eg output.mp4)"
+	exit 0
+fi
+
+list=$(mktemp)
+
+echo "Will concatenate the following files:"
+p=$(pwd)
+for f in *.$suffix; do
+	echo "$p/$f"
+	echo "file '$p/$f'" >> "$list"
+done
+
+echo
+
+ffmpeg -f concat -i "$list" -c copy "${out}.${suffix}"
+rm -f "$list"
+
