@@ -1,0 +1,46 @@
+#!/bin/bash
+# This is so stupid.. why do I have to write this.. why can't it just work...
+# Make wicd connect to the desired ESSID.
+# This script assumes you've already provided connection properties 
+# (pass, etc) to wicd, but can't make the damn thing autoconnect for
+# one reason or another. I use this when booting or resuming from suspension,
+# as for some reason, wicd's "Autoconnect" .. doesn't.
+# wicd-cli doesn't seem to provide information regarding whether or not a 
+# network is set to autoconnect or not, so we have to provide an essid here.
+# This script picks the FIRST matching essid.
+# by gammy
+
+essid="$1"
+dump="/tmp/$(basename $0).tmp"
+
+if [ $# -ne 1 ]; then
+	echo "Usage: $(basename $0) <ESSID>"
+	echo "Example: $(basename $0) Diktatorerna"
+	exit
+fi
+
+which wicd-cli > /dev/null || exit $?
+
+echo "Scanning..."
+rm -f "$dump"
+wicd-cli --wireless --scan --list-networks | tail --lines +2 > "$dump"
+
+count_all=$(wc -l "$dump" | cut -d ' ' -f 1)
+if [ "$count_all" -eq "0" ]; then
+	echo "Error: Scan yielded no results" >&2
+	exit 1
+fi
+
+cat $dump
+
+match_ids=($(grep -i "$essid$" "$dump" | cut -f 1))
+
+count_match=${#match_ids[@]}
+echo "$count_all networks, $count_match matching \"$essid\""
+
+if [ $count_match -gt 0 ]; then
+	to_use=${match_ids[0]}
+	echo "Using id $to_use out of pool containing ids: ${match_ids[@]}"
+	wicd-cli --wireless --connect --network $to_use
+	exit $?
+fi
