@@ -78,6 +78,11 @@ xe
 --
 A console script which uses http://www.xe.com to convert one currency to another. Arithmetic is allowed in the currency amount, eg `xe 12.5*2 usd eur`.
 
+wicd-connectto
+--------------
+A `wicd-cli`-wrapper which takes an ESSID as an argument and tries to connect
+to the first matching access point.
+
 xrandr\_set
 -----------
 Execute `xrandr` (or any) config and symlink last successfully executed script to a default file. I call this with hardcoded parameters in my wm, eg `xrandr_set work` for work, and `xrandr_set home` for home. On login I run `xrandr_set default` to use the last set configuration.
