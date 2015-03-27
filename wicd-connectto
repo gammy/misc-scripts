@@ -21,6 +21,10 @@ fi
 
 which wicd-cli > /dev/null || exit $?
 
+if wicd-cli --status | grep -i "connected to $essid at"; then
+	exit 0
+fi
+
 echo "Scanning..."
 rm -f "$dump"
 wicd-cli --wireless --scan --list-networks | tail --lines +2 > "$dump"
