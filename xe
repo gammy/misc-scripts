@@ -1,7 +1,9 @@
 #!/bin/bash
-# Use xe.com to convert currency on the commandline
+# Use Yahoo Finance to convert currencies on the commandline
+# This used to use xe.com (hence its name), but they've now blocked
+# the web service from use without signing a EULA. So, byebye xe!
 #
-# Idea stolen from 
+# The original idea was stolen from 
 # http://www.commandlinefu.com/commands/view/7866/currency-converter-using-xe.com
 # by gammy
 
@@ -15,24 +17,28 @@ if [ $# -ne 3 ]; then
 	exit 1
 fi
 
-amount=$(echo "$1" | bc -l)
-
 from="${2::3}" # Truncate to 3 chars
   to="${3::3}" 
 
-args="Amount=${amount}&From=${from}&To=${to}"
-cmd=(curl "http://www.xe.com/wap/2co/convert.cgi?${args}" -A Mozilla -s)
-
-html=$(${cmd[@]})
-
+args="s=${from}${to}=X&f=l1&e=.cs"
+cmd="curl -s 'http://download.finance.yahoo.com/d/quotes.csv?${args}'"
+rate=$(eval "$cmd")
 code="$?"
-text=$(echo $html | sed -n "s/.*>\(.*\) ${to^^}<.*/\1/p") # Magic
 
-if [ "$code" != "0" -o "$text" == "ERR" -o -z "$text" ]; then
-	dump=$(mktemp)
-	echo -e "'${cmd[@]}' ($code) \"$text\":\n$html" > "$dump"
-	echo "It appears that conversion failed, see \"$dump\" for details" >&2
+if [ "$rate" == "N/A" ]; then
+	echo "Unable to perform currency conversion" >&2
 	exit 1
 fi
 
-echo "$amount $from = $text $to"
+# TODO: Assert that the result is a number 
+
+if [ $code -ne 0 ]; then
+	dump=$(mktemp)
+	echo -e "$cmd: ($code)\n$rate" > "$dump"
+	echo "It appears that conversion failed, see \"$dump\" for details" >&2
+	exit $code
+fi
+
+amount=$(echo "$1" | bc -l)
+xchange=$(echo "$amount * $rate" | bc -l)
+echo "$amount $from = $xchange $to"
