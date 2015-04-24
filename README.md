@@ -76,7 +76,7 @@ _"This script allows you to easily update the DNS entries for your domains on Lo
 
 xe
 --
-A console script which uses http://www.xe.com to convert one currency to another. Arithmetic is allowed in the currency amount, eg `xe 12.5*2 usd eur`.
+A console script which previously used http://www.xe.com, but now uses Yahoo Finance to convert one currency to another. Arithmetic is allowed in the currency amount, eg `xe "12.5*2" usd eur`.
 
 wicd-connectto
 --------------
