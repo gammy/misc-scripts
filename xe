@@ -11,14 +11,19 @@ for dep in curl bc sed; do
 	which $dep > /dev/null || exit $?
 done
 
-if [ $# -ne 3 ]; then
-	echo "Usage: xe <amount> <source currency> <target currency>"
+if [ $# -lt 3 ]; then
+	echo "Usage: xe <amount> <source currency> [in|to] <target currency>"
 	echo "Example: xe 100+50 usd gbp"
 	exit 1
 fi
 
 from="${2::3}" # Truncate to 3 chars
-  to="${3::3}" 
+
+if [ "$3" == "in" -o "$3" == "to" ]; then
+	to="${4::3}" 
+else
+	to="${3::3}" 
+fi
 
 args="s=${from}${to}=X&f=l1&e=.cs"
 cmd="curl -s 'http://download.finance.yahoo.com/d/quotes.csv?${args}'"
