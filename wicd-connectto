@@ -7,7 +7,7 @@
 # as for some reason, wicd's "Autoconnect" .. doesn't.
 # wicd-cli doesn't seem to provide information regarding whether or not a 
 # network is set to autoconnect or not, so we have to provide an essid here.
-# This script picks the FIRST matching essid.
+# This script picks a RANDOM matching essid.
 # by gammy
 
 essid=
