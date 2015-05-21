@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# http://ubuntuforums.org/showthread.php?t=120186
+
+if [ $# -ne 2 ]; then
+	echo "Usage: $(basename $0) <path containing VIDEO_TS and/or AUDIO_TS>"\
+              "<output file>"
+	echo "Example: $(basename $0) ~/dvd_film/ ~/dvd_film.iso"
+	exit 0
+fi
+
+path_dvd="$1"
+
+path_vts="${path_dvd}/VIDEO_TS"
+path_ats="${path_dvd}/AUDIO_TS"
+
+path_out="$2"
+
+if [ ! -d "$path_vts" ]; then
+	echo "Can't find path \"$path_vts\"" >&2
+	exit 1
+fi
+
+if [ ! -d "$path_ats" ]; then
+	echo "\"$path_ats\" doesn't exist: creating it (empty)"
+	mkdir -v "$path_ats" || exit $?
+fi
+
+echo "Setting permissions"
+find "${path_vts}" "${path_ats}" -type f -exec chmod -v 400 "{}" \;
+chmod -v 500 "${path_vts}" "${path_ats}" || exit $?
+
+mkisofs -dvd-video -o "$path_out" "$path_dvd/"
