@@ -1,0 +1,65 @@
+#!/bin/bash
+# Set the absolute, percentual and/or relative apple macbook pro 
+# keyboard LED brightness
+#
+# Based on a helper script found in:
+# https://wiki.archlinux.org/index.php/MacBookPro8,1/8,2/8,3_%282011%29#Video_and_screen
+#
+# By gammy
+
+var='/sys/class/leds/smc::kbd_backlight/brightness'
+arg=$1
+rel=
+
+if [ $# -ne 1 ]; then
+	echo "Usage: $(basename $0) <[-]Brightness[%]>"
+	echo "Example: $(basename $0) -10%"
+	exit
+fi
+
+if [ ! -e "$var" ]; then
+	echo "Error: No keyboard backlight found" >&2
+	exit 1
+fi
+
+if [ ! -w "$var" ]; then
+	echo "Error: I need to read/write to \"$var\" but can't!" >&2
+	exit 1
+fi
+
+
+max=256
+cur=$(cat "$var")
+
+# Is the argument relative?
+if [ ${arg:0:1} = "+" ] || [ ${arg:0:1} = "-" ]; then
+	rel=${arg:0:1}
+	arg=${arg:1:${#arg}-1}
+fi
+
+# Is the argument a percentage?
+if [ ${arg:${#arg}-1:1} = "%" ]; then
+	arg="$rel${arg:0:${#arg}-1}"
+	#let unit=($max / 100)
+	# We want to mul with fractions
+	arg=$(echo "$max $arg" | awk '{print int(($1 / 100.0) * $2)}')
+	#let arg=($unit * $arg)
+fi
+
+# Relative / Absolute adjust
+if [ ! -z $rel ]; then
+	let new=($cur + $arg);
+	#new=$(echo "$cur $arg" | awk '{print int($1 + $2)}')
+else
+	new=$arg
+fi
+
+# Clip
+if [ $new -lt 0 ]; then
+	new=0
+elif [ $new -gt $max ]; then
+	new=$max
+fi
+
+echo "New brightness: $new"
+echo "$new" > "$var"

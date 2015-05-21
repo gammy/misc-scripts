@@ -66,13 +66,22 @@ relavol-pacmd
 -------
 Adjust master volume with relative and/or percentual/literal values("-5%") using `pacmd`. It works like `relavol-amixer`, but requires the sink name as the firsts argument.
 
+relakbdlight
+-------
+Adjust the keyboard LED brightness on the Macbook 8,1 (2011) with relative and/or percentual/literal values("-5%").
+
 updateDynDNS
 ------------
 _"This script allows you to easily update the DNS entries for your domains on Loopia. It reads a file consisting of a list of domains, and can take a new IP as argument. If suppressed, it will try to determine the IP on its own._"
 
 xe
 --
-A console script which uses http://www.xe.com to convert one currency to another. Arithmetic is allowed in the currency amount, eg `xe 12.5*2 usd eur`.
+A console script which previously used http://www.xe.com, but now uses Yahoo Finance to convert one currency to another. Arithmetic is allowed in the currency amount, eg `xe "12.5*2" usd eur`.
+
+wicd-connectto
+--------------
+A `wicd-cli`-wrapper which takes an ESSID as an argument and tries to connect
+to the first matching access point.
 
 xrandr\_set
 -----------

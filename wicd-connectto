@@ -1,0 +1,82 @@
+#!/bin/bash
+# This is so stupid.. why do I have to write this.. why can't it just work...
+# Make wicd connect to the desired ESSID.
+# This script assumes you've already provided connection properties 
+# (pass, etc) to wicd, but can't make the damn thing autoconnect for
+# one reason or another. I use this when booting or resuming from suspension,
+# as for some reason, wicd's "Autoconnect" .. doesn't.
+# wicd-cli doesn't seem to provide information regarding whether or not a 
+# network is set to autoconnect or not, so we have to provide an essid here.
+# This script picks a RANDOM matching essid.
+# by gammy
+
+essid=
+use_last=
+persist=
+reconnect=
+last_file="$HOME/.$(basename $0).last_essid"
+dump="/tmp/$(basename $0).tmp"
+
+usage() {
+	echo "Usage: $(basename $0) [-l] [-e <essid>]"
+	echo
+	echo "-e <ID> Use [e]ssid <ESSID>"
+	echo "-l      Use [l]ast ESSID, set in \"$last_file\""
+	echo "-r      Reconnect even if already connected"
+	echo "-K      Keep trying to connect if we fail [not implemented]"
+	echo "-h      Help"
+	echo
+	echo "Example: $(basename $0) -e Diktatorerna"
+	exit 0
+}
+
+write_last() {
+	echo "$essid" > "$last_file"
+}
+
+while [ $# -gt 0 ]; do 
+	case "$1" in
+		-l) use_last=1;;
+		-e) essid=$2;;
+		-K) persist=1;;
+		-r) reconnect=1;;
+		-h) usage
+	esac
+	shift
+done
+
+[ "$use_last" ] && essid=$(<"$last_file")
+[ -z "$essid" ] && usage
+
+which wicd-cli > /dev/null || exit $?
+
+if wicd-cli --status | grep -i "connected to $essid at"; then
+	write_last
+	[[ $reconnect ]] || exit 0
+fi
+
+echo "Scanning..."
+rm -f "$dump"
+wicd-cli --wireless --scan --list-networks | tail --lines +2 > "$dump"
+
+count_all=$(wc -l "$dump" | cut -d ' ' -f 1)
+if [ "$count_all" -eq "0" ]; then
+	echo "Error: Scan yielded no results" >&2
+	exit 1
+fi
+
+cat $dump
+
+match_ids=($(grep -i "$essid$" "$dump" | cut -f 1))
+
+count_match=${#match_ids[@]}
+echo "$count_all networks, $count_match matching \"$essid\""
+
+if [ $count_match -gt 0 ]; then
+	let random_index="$RANDOM % $count_match"
+	to_use=${match_ids[$random_index]}
+	echo Selected ID: ${match_ids[@]} | sed "s/ \(${to_use}\)/ [\1]/g"
+	wicd-cli --wireless --connect --network $to_use
+	write_last
+	exit $?
+fi
