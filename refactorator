@@ -29,6 +29,12 @@ target_string="$2"
 shift
 shift
 
+if [ $# -eq 0 ];
+then
+	usage
+	exit 0
+fi
+
 echo "\"$source_string\" -> \"$target_string\""
 
 echo
