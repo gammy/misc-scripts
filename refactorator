@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+
+backup_suffix=".refactorator"
+
+usage() {
+	me=$(basename $0)
+	echo "$me: Crudely refactor code"
+	echo "Usage: $me [test] <source string> <target string> <file> [file] [file] [..]"
+	echo "Example: $me syslog my_syslog *.c *.h"
+	echo "Prefixing the arguments with 'test' will prevent any files from being modified"
+}
+
+if [ $# -lt 3 ];
+then
+	usage
+	exit 0
+fi
+
+testing=
+
+if [ "$1" = "test" ]
+then
+	testing=1
+	shift
+fi
+
+source_string="$1"
+target_string="$2"
+shift
+shift
+
+echo "\"$source_string\" -> \"$target_string\""
+
+echo
+echo -n "Checking: "
+file_list=$@
+echo "${file_list[@]}"
+
+echo -n "Matching: "
+match_list=($(eval " grep --files-with-matches " \"$source_string\" $@))
+echo "${match_list[@]}"
+echo
+
+if [ -z "${match_list[@]}" ]
+then
+	echo "No matches or no files"
+	exit 0
+fi
+
+if [ -z "$testing" ]
+then
+	echo "WARNING: Files will be modified! Backup files will end with \"$backup_suffix\""
+else
+	echo "NOTE: This is a DRY RUN. Nothing will be modified"
+fi
+
+input=
+while [ "$input" != "y" -a "$input" != "n" ]
+do
+	echo -n "Continue? [y|n] "
+	read input
+	input=${input,,} # Convert to lower-case (bash 4.0+)
+done
+
+if [ "$input" = "n" ]
+then
+	echo "Cancelled"
+	exit 0
+fi
+
+echo "Continuing"
+echo
+
+for f in ${match_list[@]}
+do
+	echo 'sed --in-place="'$backup_suffix'" "'s/${source_string}/${target_string}/g'"' '"'$f'"'
+	if [ -z "$testing" ]
+	then
+		sed --in-place="$backup_suffix" "s/${source_string}/${target_string}/g" "$f"
+	fi
+done

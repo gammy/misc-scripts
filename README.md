@@ -66,6 +66,10 @@ relavol-pacmd
 -------
 Adjust master volume with relative and/or percentual/literal values("-5%") using `pacmd`. It works like `relavol-amixer`, but requires the sink name as the firsts argument.
 
+refactorator
+-------
+A `sed` wrapper for replacing strings in multiple files.
+
 relakbdlight
 -------
 Adjust the keyboard LED brightness on the Macbook 8,1 (2011) with relative and/or percentual/literal values("-5%").
