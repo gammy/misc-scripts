@@ -1,0 +1,99 @@
+#!/usr/bin/env bash
+# If you have the PID of a process, can you 'reverse' that to which, if any,
+# X-Window is its nearest parent, and if found, raise it to the top of the
+# window stack (to make it visible) ? Yes, sort of! :)
+# This is very hacky!
+
+deps=(awk sed xprop xdotool)
+for dep in ${deps[@]}; do
+        which $dep > /dev/null || exit $?
+done
+
+process_id=$1
+
+if [ -z "$process_id" ]; then
+	me=$(basename $0)
+	echo "$me: Try to raise the X Window coupled to <PID>"
+	echo "$me: Usage: $me <PID>"
+	exit 0
+fi
+
+
+# Get the process tree of the PID, and its ancestors
+# ps -AH | grep --before-context=20 --max-count=1 -e "^ *${process_id} " | \
+#      tac | awk '{print $1, $NF}'
+
+pids=$(ps -AH | \
+       grep --before-context=20 \
+            --max-count=1 \
+	    -e "^ *${process_id} " | \
+	    tac | \
+	    	awk '{print $1}')
+
+# echo $pids
+
+if [ -z "$pids" ]; then
+	echo "Found no process matching PID $process_id" >&2
+	exit 1
+fi
+
+# Get a list of X Window IDs and their PIDs
+window_ids=$(xprop -root | \
+	     grep "_NET_CLIENT_LIST_STACKING(WINDOW)" | \
+		     sed 's/, / /g' | \
+		     sed 's/^.*# //')
+
+# Get the PID of each X Window 
+# Map our relevant PIDs to Window IDs
+process_map=()
+for id in $window_ids; do
+	window_pid=$(xprop -id $id _NET_WM_PID | \
+		     	grep '=' | \
+		     		awk '{print $NF}')
+	match=
+	for pid in $pids; do
+		if [ "$pid" = "$window_pid" ]; then
+			# echo "MATCH: $id = $pid"
+			process_map+=("$pid $id")
+		fi
+	done
+		
+done
+
+if [ "${#process_map[@]}" = "0" ]; then
+	echo "Found no X window ID's associated with PD $process_id" >&2
+	exit 1
+fi
+
+# echo "Candidates, in order of ancestry"
+
+# Sorting, really
+window_candidates=()
+for process_id in $pids; do
+	candidate=
+	for tuple in "${process_map[@]}"; do
+		if echo $tuple | grep --quiet $process_id; then
+			candidate="$tuple"
+			break
+		fi
+	done
+	if [ -n "$candidate" ]; then
+		window_candidates+=($(echo $candidate | \
+				      cut -d ' ' -f 2))
+		# echo "$candidate"
+	fi
+done
+
+# echo "Picking the first entry"
+first=${window_candidates[0]}
+
+# Figure out which desktop the window is on
+win_desktop=$(xdotool get_desktop_for_window $first)
+# echo "$first is on desktop $win_desktop"
+
+# Move us there
+xdotool set_desktop $win_desktop
+
+# Raise and focus the window
+# echo "Raising $first"
+xdotool windowraise $first windowfocus $first

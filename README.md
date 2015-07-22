@@ -14,6 +14,7 @@ A wrapper around avrdude which helps me write a .hex file with ease.
 bp
 ---
 _"An ACPI battery and AC-power status script. Requires /proc, ACPI support, `bash`, `head`, `tail`, `sed`, `grep` and `wc`. Should now work on systems where battery isn't named BATx and adapter ACAD. Also works with batteries that don't report in mAh. Supports multiple batteries."_
+Please note that this is deprecated and probably hasn't worked since linux 2.4..
 
 deskrec
 -------
@@ -86,6 +87,10 @@ wicd-connectto
 --------------
 A `wicd-cli`-wrapper which takes an ESSID as an argument and tries to connect
 to the first matching access point.
+
+win_raise
+---------
+A hacky script which attemmpts to find the nearest X Window associated to a process id(PID), and then raises that window. It depends on `xprop` and `xdotool`.
 
 xrandr\_set
 -----------
