@@ -83,7 +83,6 @@ def run_files(args, file_list):
 			return False
 	return True
 
-
 parser = argparse.ArgumentParser()
 
 parser.add_argument("-p", "--path", 
@@ -132,9 +131,7 @@ parser.add_argument("callee",
 args = parser.parse_args()
 
 cache_file = args.path + '/' + '.playrand-' + args.cache_profile + '.cache'
-
 file_list = []
-cwd = os.getcwd()
 
 if args.rebuild_cache:
 	args.use_cache = True
