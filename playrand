@@ -9,7 +9,7 @@
 # - Interactive mode, which prompts for user input before and after each file:
 #   'q' quits, 'r' re-runs, 'd' prompts for deletion and any other key
 #    continues execution (--prompt)
-# - Store the list of scanned files to disk (--use-cache, --rebuild-cache)
+# - Store the list of scanned files to disk (--use-playlist, --rebuild-playlist)
 # - Shuffle the list
 # - Only add files matching a particular string (--contains)
 # - Loop through the list forever
@@ -26,9 +26,9 @@ def list_add(filename):
 	print("Add {:s}".format(filename))
 	file_list.append(filename)
 
-def cache_add(filename):
+def playlist_add(filename):
 	list_add(filename)
-	with open(cache_file, 'ab') as file_out:
+	with open(playlist_file, 'ab') as file_out:
 		file_out.write(filename.encode())
 		file_out.write("\n".encode())
 
@@ -102,19 +102,19 @@ parser.add_argument("-s", "--shuffle",
 		    default = False,
 		    action = 'store_true',
 		    help = "Shuffle the list")
-parser.add_argument("-c", "--rebuild-cache", 
+parser.add_argument("-c", "--rebuild-playlist", 
 		    default = False,
 		    action = 'store_true',
-		    help = "Generate a new cache file, which is used when "
-		           "invoked with --use-cache")
-parser.add_argument("-u", "--use-cache", 
+		    help = "Generate a new playlist file, which is used when "
+		           "invoked with --use-playlist")
+parser.add_argument("-u", "--use-playlist", 
 		    default = False,
 		    action = 'store_true',
-		    help = "Use the cache rather than the file system")
-parser.add_argument("-P", "--cache-profile", 
+		    help = "Use the playlist rather than the file system")
+parser.add_argument("-P", "--playlist-profile", 
 		    default = "default",
-		    help = "When used with --use-cache, "
-		           "specify which cache profile (file) to use")
+		    help = "When used with --use-playlist, "
+		           "specify which playlist profile (file) to use")
 parser.add_argument("-i", "--prompt", 
 		    default = False,
 		    action = 'store_true',
@@ -130,26 +130,26 @@ parser.add_argument("callee",
 
 args = parser.parse_args()
 
-cache_file = args.path + '/' + '.playrand-' + args.cache_profile + '.cache'
+playlist_file = args.path + '/' + '.playrand-' + args.playlist_profile + '.list'
 file_list = []
 
-if args.rebuild_cache:
-	args.use_cache = True
+if args.rebuild_playlist:
+	args.use_playlist = True
 
-if args.use_cache:
-	if not os.path.isfile(cache_file):
-		args.rebuild_cache = True
+if args.use_playlist:
+	if not os.path.isfile(playlist_file):
+		args.rebuild_playlist = True
 
-	if args.rebuild_cache:
-		print("Building cache: " + cache_file)
+	if args.rebuild_playlist:
+		print("Building playlist: " + playlist_file)
 		print("Please wait. This may be very slow on a network!")
-		# Remove old cache
-		tmp = open(cache_file, 'w');
+		# Remove old playlist
+		tmp = open(playlist_file, 'w');
 		tmp.close()
-		scan_files(args, cache_add)
+		scan_files(args, playlist_add)
 	else:
-		print("Using cache: " + cache_file)
-		with open(cache_file, "rb") as file_in:
+		print("Using playlist: " + playlist_file)
+		with open(playlist_file, "rb") as file_in:
 			for f in file_in:
 				file_list.append(f.decode().rstrip())
 else:
