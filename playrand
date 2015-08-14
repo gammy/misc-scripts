@@ -1,0 +1,150 @@
+#!/usr/bin/env python3
+
+# Goals:
+# [X] Ability to delete on the fly
+# [X] Ability to specify player args 
+# [ ] Option to do a live scan and dump to a "database"
+# [ ] Option to use "database" rather than do a live scan
+# [X] Option to specify a path to work in
+# [X] Option to shuffle
+# [X] Option to require file path to match a pattern (--contains FOO) ?
+# [X] Option interactive or automatic (stop after each)
+# [X] Ability to either loop or exit when done
+
+import argparse
+import os
+import glob
+import magic # libmagic (pip install libmagic filemagic)
+import random
+import subprocess
+import readchar
+
+def run_files(args, file_list):
+	for f in file_list:
+		print("> " + f)
+
+		if args.interactive:
+			print("[s]kip, [q]uit or any other key to proceed")
+			key = readchar.readkey()
+			if key == 'q':
+				return False
+			if key == 's':
+				continue
+		
+		if run_file(args, f) == False:
+			return False
+	return True
+
+def run_file(args, f):
+	call = args.callee + [f]
+	print(call)
+	print()
+
+	subprocess.call(call)
+
+	if args.interactive:
+		print("< " + f)
+		print("[q]uit, [d]elete, [r]erun "
+		      "or any other key to continue")
+		key = readchar.readkey()
+		if key == 'q':
+			return False
+		if key == 'r':
+			run_file(args, f)
+		if key == 'd':
+			print("Are you sure? [y] confirms, any other cancels")
+			key = readchar.readkey()
+			if key == 'y':
+				os.unlink(f)
+	return True
+
+parser = argparse.ArgumentParser()
+
+parser.add_argument("-p", "--path", 
+		    type = str,
+		    default = '.',
+		    help = "Directory path to work with")
+parser.add_argument("-t", "--mime-type", 
+		    type = str,
+		    default = 'video',
+		    help = "Mime type to look for. Parsed by 'startswith'")
+parser.add_argument("-C", "--contains", 
+		    type = str,
+		    default = '',
+		    help = "Full filename must contain <this>. Parsed by 'in'")
+parser.add_argument("-s", "--shuffle", 
+		    default = False,
+		    action = 'store_true',
+		    help = "Shuffle the list")
+parser.add_argument("-c", "--build-cache", 
+		    default = False,
+		    action = 'store_true',
+		    help = "Generate cache")
+parser.add_argument("-u", "--use-cache", 
+		    default = False,
+		    action = 'store_true',
+		    help = "Use the cache rather than the file system")
+parser.add_argument("-i", "--interactive", 
+		    default = False,
+		    action = 'store_true',
+		    help = "Basic interactive mode; Ask y/n before each entry"
+		           ", and stop with a prompt after each entry")
+parser.add_argument("-l", "--loop", 
+		    default = False,
+		    action = 'store_true',
+		    help = "Loop once entries are exhausted")
+parser.add_argument("callee",
+		    nargs = "+",
+		    help = "Command and args to call")
+
+args = parser.parse_args()
+cache_file = args.path + '/' + '.playrand.cache'
+
+print("Path       : " + args.path);
+print("Mime-type  : " + args.mime_type);
+print("Contains   : " + args.contains);
+print("Shuffle    : " + str(args.shuffle));
+print("Build-cache: " + str(args.build_cache));
+print("Use-cache  : " + str(args.use_cache));
+print("Loop       : " + str(args.loop));
+print("Interactive: " + str(args.interactive));
+print("Callee     : " + str(args.callee));
+print("")
+
+file_list = []
+
+if args.build_cache:
+	print('Building cache: "{:s}"'.format(cache_file))
+	print("STUB")
+
+if args.use_cache:
+	print("Use cache: STUB")
+else:
+	print("Indexing, please wait. This may be very slow on a network!")
+	for root, dirs, files in os.walk(args.path):
+		for f in files:
+			full_file = os.path.join(root, f)
+			if args.contains and not args.contains in full_file:
+				continue
+			with magic.Magic(flags=magic.MAGIC_MIME_TYPE) as m:
+				mime_type = m.id_filename(full_file)
+				if mime_type.startswith(args.mime_type):
+					print("Add {:s}".format(f))
+					file_list.append(full_file)
+
+if args.shuffle:
+	random.shuffle(file_list)
+
+file_count = len(file_list)
+print("{:d} files".format(file_count))
+
+if file_count == 0:
+	exit
+
+if args.loop:
+	busy = True
+	while busy:
+		busy = run_files(args, file_list)
+else:
+	run_files(args, file_list)
+

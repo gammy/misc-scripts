@@ -23,7 +23,7 @@ usage() {
 	echo "-e <ID> Use [e]ssid <ESSID>"
 	echo "-l      Use [l]ast ESSID, set in \"$last_file\""
 	echo "-r      Reconnect even if already connected"
-	echo "-K      Keep trying to connect if we fail [not implemented]"
+	echo "-K      Keep trying to connect if we fail"
 	echo "-h      Help"
 	echo
 	echo "Example: $(basename $0) -e Diktatorerna"
@@ -55,28 +55,47 @@ if wicd-cli --status | grep -i "connected to $essid at"; then
 	[[ $reconnect ]] || exit 0
 fi
 
-echo "Scanning..."
-rm -f "$dump"
-wicd-cli --wireless --scan --list-networks | tail --lines +2 > "$dump"
+function connect() {
 
-count_all=$(wc -l "$dump" | cut -d ' ' -f 1)
-if [ "$count_all" -eq "0" ]; then
-	echo "Error: Scan yielded no results" >&2
-	exit 1
-fi
+	echo "Scanning..."
+	rm -f "$dump"
+	wicd-cli --wireless --scan --list-networks | tail --lines +2 > "$dump"
 
-cat $dump
+	count_all=$(wc -l "$dump" | cut -d ' ' -f 1)
+	if [ "$count_all" -eq "0" ]; then
+		echo "Error: Scan yielded no results" >&2
+		exit 1
+	fi
 
-match_ids=($(grep -i "$essid$" "$dump" | cut -f 1))
+	grep "$essid" $dump
 
-count_match=${#match_ids[@]}
-echo "$count_all networks, $count_match matching \"$essid\""
+	match_ids=($(grep -i "$essid$" "$dump" | cut -f 1))
 
-if [ $count_match -gt 0 ]; then
-	let random_index="$RANDOM % $count_match"
-	to_use=${match_ids[$random_index]}
-	echo Selected ID: ${match_ids[@]} | sed "s/ \(${to_use}\)/ [\1]/g"
-	wicd-cli --wireless --connect --network $to_use
-	write_last
-	exit $?
-fi
+	count_match=${#match_ids[@]}
+	echo "$count_all networks, $count_match matching \"$essid\""
+
+	if [ $count_match -gt 0 ]; then
+		let random_index="$RANDOM % $count_match"
+		to_use=${match_ids[$random_index]}
+		echo "Selected ID: ${match_ids[@]} " | \
+			sed "s/\(${to_use}\) /[\1] /g"
+		wicd-cli --wireless --connect --network $to_use
+		write_last
+		#exit $?
+	fi
+
+	ping -c 2 8.8.8.8
+	return $?
+}
+
+while true; do
+	connect
+	state=$?
+	if [ $state = 0 ]; then
+		break
+	fi
+	if [ -z "$persist" ]; then
+		echo "Not persistent, exit"
+		break
+	fi
+done
