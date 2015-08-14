@@ -3,11 +3,12 @@
 # Goals:
 # [X] Ability to delete on the fly
 # [X] Ability to specify player args 
-# [ ] Option to do a live scan and dump to a "database"
-# [ ] Option to use "database" rather than do a live scan
+# [X] Option to do a live scan and dump to a "database"
+# [X] Option to use "database" rather than do a live scan
 # [X] Option to specify a path to work in
 # [X] Option to shuffle
 # [X] Option to require file path to match a pattern (--contains FOO) ?
+# [X] Option to specify part of a mime-type 
 # [X] Option interactive or automatic (stop after each)
 # [X] Ability to either loop or exit when done
 
@@ -18,6 +19,52 @@ import magic # libmagic (pip install libmagic filemagic)
 import random
 import subprocess
 import readchar
+
+def list_add(filename):
+	print("Add {:s}".format(filename))
+	file_list.append(filename)
+
+def cache_add(filename):
+	list_add(filename)
+	with open(cache_file, 'ab') as file_out:
+		file_out.write(filename.encode())
+		file_out.write("\n".encode())
+
+def scan_files(args, handler):
+	for root, dirs, files in os.walk(args.path):
+		for f in files:
+			filename = os.path.join(root, f)
+			if args.contains and not args.contains in filename:
+				continue
+			with magic.Magic(flags=magic.MAGIC_MIME_TYPE) as m:
+				mime_type = m.id_filename(filename)
+				if mime_type.startswith(args.mime_type):
+					handler(filename)
+
+def run_file(args, f):
+	call = args.callee + [f]
+	print(call)
+	print()
+
+	subprocess.call(call)
+
+	if not args.interactive:
+		return True
+
+	print("< " + f)
+	print("[q]uit, [d]elete, [r]erun "
+	      "or any other key to continue")
+	key = readchar.readkey()
+	if key == 'q':
+		return False
+	if key == 'r':
+		run_file(args, f)
+	if key == 'd':
+		print("Are you sure? [y] confirms, any other cancels")
+		key = readchar.readkey()
+		if key == 'y':
+			os.unlink(f)
+	return True
 
 def run_files(args, file_list):
 	for f in file_list:
@@ -35,28 +82,6 @@ def run_files(args, file_list):
 			return False
 	return True
 
-def run_file(args, f):
-	call = args.callee + [f]
-	print(call)
-	print()
-
-	subprocess.call(call)
-
-	if args.interactive:
-		print("< " + f)
-		print("[q]uit, [d]elete, [r]erun "
-		      "or any other key to continue")
-		key = readchar.readkey()
-		if key == 'q':
-			return False
-		if key == 'r':
-			run_file(args, f)
-		if key == 'd':
-			print("Are you sure? [y] confirms, any other cancels")
-			key = readchar.readkey()
-			if key == 'y':
-				os.unlink(f)
-	return True
 
 parser = argparse.ArgumentParser()
 
@@ -71,19 +96,25 @@ parser.add_argument("-t", "--mime-type",
 parser.add_argument("-C", "--contains", 
 		    type = str,
 		    default = '',
-		    help = "Full filename must contain <this>. Parsed by 'in'")
+		    help = "Full filename must contain <this>. "
+		           "Parsed by 'in'")
 parser.add_argument("-s", "--shuffle", 
 		    default = False,
 		    action = 'store_true',
 		    help = "Shuffle the list")
-parser.add_argument("-c", "--build-cache", 
+parser.add_argument("-c", "--rebuild-cache", 
 		    default = False,
 		    action = 'store_true',
-		    help = "Generate cache")
+		    help = "Generate a new cache file, which is used when "
+		           "invoked with --use-cache")
 parser.add_argument("-u", "--use-cache", 
 		    default = False,
 		    action = 'store_true',
 		    help = "Use the cache rather than the file system")
+parser.add_argument("-P", "--cache-profile", 
+		    default = "default",
+		    help = "When used with --use-cache, "
+		           "specify which cache profile (file) to use")
 parser.add_argument("-i", "--interactive", 
 		    default = False,
 		    action = 'store_true',
@@ -98,39 +129,47 @@ parser.add_argument("callee",
 		    help = "Command and args to call")
 
 args = parser.parse_args()
-cache_file = args.path + '/' + '.playrand.cache'
 
-print("Path       : " + args.path);
-print("Mime-type  : " + args.mime_type);
-print("Contains   : " + args.contains);
-print("Shuffle    : " + str(args.shuffle));
-print("Build-cache: " + str(args.build_cache));
-print("Use-cache  : " + str(args.use_cache));
-print("Loop       : " + str(args.loop));
-print("Interactive: " + str(args.interactive));
-print("Callee     : " + str(args.callee));
+cache_file = args.path + '/' + '.playrand-' + args.cache_profile + '.cache'
+
+print("Path         : " + args.path);
+print("Mime-type    : " + args.mime_type);
+print("Contains     : " + args.contains);
+print("Shuffle      : " + str(args.shuffle));
+print("Rebuild-cache: " + str(args.rebuild_cache));
+print("Use-cache    : " + str(args.use_cache));
+print("Cache-file   : " + str(cache_file));
+print("Loop         : " + str(args.loop));
+print("Interactive  : " + str(args.interactive));
+print("Callee       : " + str(args.callee));
 print("")
 
 file_list = []
+cwd = os.getcwd()
 
-if args.build_cache:
-	print('Building cache: "{:s}"'.format(cache_file))
-	print("STUB")
+file_list = []
+
+if args.rebuild_cache:
+	args.use_cache = True
 
 if args.use_cache:
-	print("Use cache: STUB")
+	if not os.path.isfile(cache_file):
+		args.rebuild_cache = True
+
+	if args.rebuild_cache:
+		print("Building cache: " + cache_file)
+		print("Please wait. This may be very slow on a network!")
+		# Remove old cache
+		tmp = open(cache_file, 'w');
+		tmp.close()
+		scan_files(args, cache_add)
+	else:
+		print("Using cache: " + cache_file)
+		with open(cache_file, "rb") as file_in:
+			for f in file_in:
+				file_list.append(f.decode().rstrip())
 else:
-	print("Indexing, please wait. This may be very slow on a network!")
-	for root, dirs, files in os.walk(args.path):
-		for f in files:
-			full_file = os.path.join(root, f)
-			if args.contains and not args.contains in full_file:
-				continue
-			with magic.Magic(flags=magic.MAGIC_MIME_TYPE) as m:
-				mime_type = m.id_filename(full_file)
-				if mime_type.startswith(args.mime_type):
-					print("Add {:s}".format(f))
-					file_list.append(full_file)
+	scan_files(args, list_add)
 
 if args.shuffle:
 	random.shuffle(file_list)
@@ -147,4 +186,3 @@ if args.loop:
 		busy = run_files(args, file_list)
 else:
 	run_files(args, file_list)
-
