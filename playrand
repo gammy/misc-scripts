@@ -83,6 +83,9 @@ def run_files(args, file_list):
 			return False
 	return True
 
+#playlist_file = args.path + '/' + 'playrand-' + args.playlist + '.list'
+playlist_file = 'playrand-default.list'
+
 parser = argparse.ArgumentParser()
 
 parser.add_argument("-p", "--path", 
@@ -105,21 +108,22 @@ parser.add_argument("-s", "--shuffle",
 parser.add_argument("-c", "--rebuild-playlist", 
 		    default = False,
 		    action = 'store_true',
-		    help = "Generate a new playlist file, which is used when "
-		           "invoked with --use-playlist")
+		    help = "Generate a new playlist file. "
+		           "implies --use-playlist")
 parser.add_argument("-u", "--use-playlist", 
 		    default = False,
 		    action = 'store_true',
-		    help = "Use the playlist rather than the file system")
-parser.add_argument("-P", "--playlist-profile", 
-		    default = "default",
-		    help = "When used with --use-playlist, "
-		           "specify which playlist profile (file) to use")
+		    help = "Use a playlist rather than the file system."
+		           "Builds a playlist if none already exists")
+parser.add_argument("-P", "--playlist", 
+		    default = playlist_file,
+		    help = "Specify which playlist file to use; "
+		           "implies --use-playlist or --rebuild-playlist")
 parser.add_argument("-i", "--prompt", 
 		    default = False,
 		    action = 'store_true',
-		    help = "Basic prompt mode; Ask y/n before each entry"
-		           ", and stop with a prompt after each entry")
+		    help = "Prompt mode. More verbose, and prompts before "
+		           "and after each file has been executed")
 parser.add_argument("-l", "--loop", 
 		    default = False,
 		    action = 'store_true',
@@ -130,7 +134,6 @@ parser.add_argument("callee",
 
 args = parser.parse_args()
 
-playlist_file = args.path + '/' + '.playrand-' + args.playlist_profile + '.list'
 file_list = []
 
 if args.rebuild_playlist:
