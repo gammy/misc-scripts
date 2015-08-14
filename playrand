@@ -17,10 +17,10 @@
 import argparse
 import os
 import glob
-import magic # libmagic (pip install libmagic filemagic)
 import random
 import subprocess
-import readchar
+import magic    # pip install libmagic filemagic
+import readchar # pip install readchar
 
 def list_add(filename):
 	print("Add {:s}".format(filename))
