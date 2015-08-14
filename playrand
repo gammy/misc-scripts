@@ -36,8 +36,6 @@ def scan_files(args, handler):
 	for root, dirs, files in os.walk(args.path):
 		for f in files:
 			filename = os.path.join(root, f)
-			print("Type of filename : " + str(type(filename)))
-			print("Type of args.path: " + str(type(args.path)))
 			if args.contains and not args.contains in filename:
 				continue
 			with magic.Magic(flags=magic.MAGIC_MIME_TYPE) as m:
