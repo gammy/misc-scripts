@@ -3,6 +3,7 @@
 #           found somewhere in the specified directory tree.
 #
 # The simplest example: `playrand --mime-type '' -- ls -l`
+# playrand -- -
 # See `playrand --help` for a full list of features.
 #
 # Some abilities:
@@ -46,9 +47,6 @@ def scan_files(args, handler):
 
 def run_file(args, f):
 	call = args.callee + [f]
-	#print(call)
-	#print()
-
 	subprocess.call(call)
 
 	if not args.prompt:
@@ -71,6 +69,8 @@ def run_file(args, f):
 
 def run_files(args, file_list):
 	for f in file_list:
+		if args.contains and not args.contains in f.decode('UTF-8'):
+			continue
 		if args.prompt:
 			print("> " + f.decode('UTF-8'))
 			print("[s]kip, [q]uit or any other key to proceed")
@@ -101,6 +101,8 @@ parser.add_argument("-C", "--contains",
 		    type = str,
 		    default = '',
 		    help = "Full filename must contain <this>. "
+		           "Applies both to scanning playlists, and "
+			   "filtering the playlist. "
 		           "Parsed by 'in'")
 parser.add_argument("-s", "--shuffle", 
 		    default = False,
