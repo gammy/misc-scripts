@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# Wrap around perl's printf. The `printf` utility doesn't do binary ("%08b")
+# conversion, which I use all the time. This is not perfect, but usable!
+# Example:
+# $ ./gprintf "Hey %08b %d %d %f\n" 0x10 10 0b11 1.2
+# Hey 00010000 10 3 1.200000
+
+fmt="$1"
+shift
+perl -e " 
+my @args;
+for(@ARGV) {
+	if(m/^0x/) { # hex
+		push @args, hex;
+	}
+	elsif(m/^0b/) {
+		# Don't ask me how oct works here, but it parses it correctly
+		push @args, oct;
+	}
+	elsif(m/^\d+$/) {
+		push @args, int;
+	}
+	elsif(m/^\d[\.]+/) {
+		push @args, sprintf(\"%f\", \$_);
+	}
+	else {
+		push @args;
+	}
+}
+printf(\"${fmt}\", @args);" $@

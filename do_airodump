@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+
+if [ $# != 2 ]
+then
+	echo "Usage: $(basename $0) <card> <dumpfile>"
+	exit 0
+fi
+
+card=$1
+dump=$2
+monitor="${card}mon"
+
+if ! airmon-ng | grep -q $card
+then 
+	echo "Card \"$1\" not found:"
+	airmon-ng
+	exit $?
+fi
+
+if ! airmon-ng  | grep -q "$monitor" 
+then
+	echo "Monitor \"$monitor\" not available, making one"
+	airmon-ng start $card
+fi
+
+echo "Start capture"
+airodump-ng --write "$dump"  --update 4 $monitor
