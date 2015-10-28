@@ -114,6 +114,10 @@ offsy=$(grep "Absolute upper-left Y:" ${tmp} | awk '{print $4}')
 
 rm -f $tmp
 
+# Width and height need to be evenly divisible by two
+[[ $(( $width % 2 )) -ne 0 ]] && let width="$width + 1"
+[[ $(( $height % 2 )) -ne 0 ]] && let height="$height + 1"
+
 dims=${width}x${height}
 
 echo -e "\nGeometry for \"${name}\" (${id}) is ${dims}+${offsx}+${offsy}."
@@ -154,7 +158,8 @@ fi
 echo -e "Launching ffmpeg.\n"
 
 # See http://ffmpeg.org/trac/ffmpeg/wiki/x264EncodingGuide for encoding specifics
-ffmpeg -loglevel panic \
+
+ffmpeg -loglevel warning \
        -f x11grab \
        -r $fps \
        -s $dims \
@@ -163,6 +168,7 @@ ffmpeg -loglevel panic \
        -preset ultrafast \
        -crf 18 \
        -threads 0 \
+       -pix_fmt yuv420p \
        $dst \
 && {
 	echo -e "\nFinished:" 
