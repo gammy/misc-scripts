@@ -24,65 +24,73 @@ import magic    # pip install libmagic filemagic
 import readchar # pip install readchar
 
 def list_add(filename):
-	print("Add " + filename.decode('UTF-8'))
-	file_list.append(filename)
+    print("Add " + filename.decode('UTF-8'))
+    file_list.append(filename)
 
 def playlist_add(filename):
-	list_add(filename)
-	with open(playlist_file, 'ab') as file_out:
-		file_out.write(filename)
-		file_out.write("\n".encode())
+    list_add(filename)
+    with open(playlist_file, 'ab') as file_out:
+        file_out.write(filename)
+        file_out.write("\n".encode())
 
 def scan_files(args, handler):
-	for root, dirs, files in os.walk(args.path):
-		for f in files:
-			filename = os.path.join(root, f)
-			if args.contains and not args.contains in filename:
-				continue
-			with magic.Magic(flags=magic.MAGIC_MIME_TYPE) as m:
-				filename = filename.encode('UTF-8', 'replace')
-				mime_type = m.id_filename(filename)
-				if mime_type.startswith(args.mime_type):
-					handler(filename)
+    for root, dirs, files in os.walk(args.path):
+        for f in files:
+            filename = os.path.join(root, f)
+            if args.contains and not args.contains in filename:
+                print("No contains in filename")
+                continue
+
+            filename = filename.encode('UTF-8', 'replace')
+
+            if args.mime_type:
+                with magic.Magic(flags=magic.MAGIC_MIME_TYPE) as m:
+                    mime_type = m.id_filename(filename)
+                    for mt in args.mime_type:
+                        if mime_type.startswith(mt):
+                            handler(filename)
+            else:
+                handler(filename)
+
 
 def run_file(args, f):
-	call = args.callee + [f]
-	subprocess.call(call)
+    call = args.callee + [f]
+    subprocess.call(call)
 
-	if not args.prompt:
-		return True
+    if not args.prompt:
+        return True
 
-	print("< " + f.decode('UTF-8'))
-	print("[q]uit, [d]elete, [r]erun "
-	      "or any other key to continue")
-	key = readchar.readkey()
-	if key == 'q':
-		return False
-	if key == 'r':
-		run_file(args, f)
-	if key == 'd':
-		print("Are you sure? [y] confirms, any other cancels")
-		key = readchar.readkey()
-		if key == 'y':
-			os.unlink(f)
-	return True
+    print("< " + f.decode('UTF-8'))
+    print("[q]uit, [d]elete, [r]erun "
+          "or any other key to continue")
+    key = readchar.readkey()
+    if key == 'q':
+        return False
+    if key == 'r':
+        run_file(args, f)
+    if key == 'd':
+        print("Are you sure? [y] confirms, any other cancels")
+        key = readchar.readkey()
+        if key == 'y':
+            os.unlink(f)
+    return True
 
 def run_files(args, file_list):
-	for f in file_list:
-		if args.contains and not args.contains in f.decode('UTF-8'):
-			continue
-		if args.prompt:
-			print("> " + f.decode('UTF-8'))
-			print("[s]kip, [q]uit or any other key to proceed")
-			key = readchar.readkey()
-			if key == 'q':
-				return False
-			if key == 's':
-				continue
-		
-		if run_file(args, f) == False:
-			return False
-	return True
+    for f in file_list:
+        if args.contains and not args.contains in f.decode('UTF-8'):
+            continue
+        if args.prompt:
+            print("> " + f.decode('UTF-8'))
+            print("[s]kip, [q]uit or any other key to proceed")
+            key = readchar.readkey()
+            if key == 'q':
+                return False
+            if key == 's':
+                continue
+        
+        if run_file(args, f) == False:
+            return False
+    return True
 
 #playlist_file = args.path + '/' + 'playrand-' + args.playlist + '.list'
 playlist_file = 'playrand-default.list'
@@ -90,89 +98,90 @@ playlist_file = 'playrand-default.list'
 parser = argparse.ArgumentParser()
 
 parser.add_argument("-p", "--path", 
-		    type = str,
-		    default = '.',
-		    help = "Directory path to work with")
+            type = str,
+            default = '.',
+            help = "Directory path to work with")
 parser.add_argument("-t", "--mime-type", 
-		    type = str,
-		    default = 'video',
-		    help = "Mime type to look for. Parsed by 'startswith'")
+            type = str,
+            default = None,
+            action = 'append',
+            help = "Mime type to look for. Parsed by 'startswith'")
 parser.add_argument("-C", "--contains", 
-		    type = str,
-		    default = '',
-		    help = "Full filename must contain <this>. "
-		           "Applies both to scanning playlists, and "
-			   "filtering the playlist. "
-		           "Parsed by 'in'")
+            type = str,
+            default = '',
+            help = "Full filename must contain <this>. "
+                   "Applies both to scanning playlists, and "
+               "filtering the playlist. "
+                   "Parsed by 'in'")
 parser.add_argument("-s", "--shuffle", 
-		    default = False,
-		    action = 'store_true',
-		    help = "Shuffle the list")
+            default = False,
+            action = 'store_true',
+            help = "Shuffle the list")
 parser.add_argument("-c", "--rebuild-playlist", 
-		    default = False,
-		    action = 'store_true',
-		    help = "Generate a new playlist file. "
-		           "implies --use-playlist")
+            default = False,
+            action = 'store_true',
+            help = "Generate a new playlist file. "
+                   "implies --use-playlist")
 parser.add_argument("-u", "--use-playlist", 
-		    default = False,
-		    action = 'store_true',
-		    help = "Use a playlist rather than the file system."
-		           "Builds a playlist if none already exists")
+            default = False,
+            action = 'store_true',
+            help = "Use a playlist rather than the file system."
+                   "Builds a playlist if none already exists")
 parser.add_argument("-P", "--playlist", 
-		    default = playlist_file,
-		    help = "Specify which playlist file to use; "
-		           "implies --use-playlist or --rebuild-playlist")
+            default = playlist_file,
+            help = "Specify which playlist file to use; "
+                   "implies --use-playlist or --rebuild-playlist")
 parser.add_argument("-i", "--prompt", 
-		    default = False,
-		    action = 'store_true',
-		    help = "Prompt mode. More verbose, and prompts before "
-		           "and after each file has been executed")
+            default = False,
+            action = 'store_true',
+            help = "Prompt mode. More verbose, and prompts before "
+                   "and after each file has been executed")
 parser.add_argument("-l", "--loop", 
-		    default = False,
-		    action = 'store_true',
-		    help = "Loop once entries are exhausted")
+            default = False,
+            action = 'store_true',
+            help = "Loop once entries are exhausted")
 parser.add_argument("callee",
-		    nargs = "+",
-		    help = "Command and args to call")
+            nargs = "+",
+            help = "Command and args to call")
 
 args = parser.parse_args()
 
 file_list = []
 
 if args.rebuild_playlist:
-	args.use_playlist = True
+    args.use_playlist = True
 
 if args.use_playlist:
-	if not os.path.isfile(playlist_file):
-		args.rebuild_playlist = True
+    if not os.path.isfile(playlist_file):
+        args.rebuild_playlist = True
 
-	if args.rebuild_playlist:
-		print("Building playlist: " + playlist_file)
-		print("Please wait. This may be very slow on a network!")
-		# Remove old playlist
-		tmp = open(playlist_file, 'w');
-		tmp.close()
-		scan_files(args, playlist_add)
-	else:
-		print("Using playlist: " + playlist_file)
-		with open(playlist_file, "rb") as file_in:
-			for f in file_in:
-				file_list.append(f.rstrip())
+    if args.rebuild_playlist:
+        print("Building playlist: " + playlist_file)
+        print("Please wait. This may be very slow on a network!")
+        # Remove old playlist
+        tmp = open(playlist_file, 'w');
+        tmp.close()
+        scan_files(args, playlist_add)
+    else:
+        print("Using playlist: " + playlist_file)
+        with open(playlist_file, "rb") as file_in:
+            for f in file_in:
+                file_list.append(f.rstrip())
 else:
-	scan_files(args, list_add)
+    scan_files(args, list_add)
 
 if args.shuffle:
-	random.shuffle(file_list)
+    random.shuffle(file_list)
 
 file_count = len(file_list)
 print("{:d} files".format(file_count))
 
 if file_count == 0:
-	exit
+    exit
 
 if args.loop:
-	busy = True
-	while busy:
-		busy = run_files(args, file_list)
+    busy = True
+    while busy:
+        busy = run_files(args, file_list)
 else:
-	run_files(args, file_list)
+    run_files(args, file_list)

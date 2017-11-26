@@ -1,7 +1,8 @@
 #!/bin/bash
-# Use Yahoo Finance to convert currencies on the commandline
-# This used to use xe.com (hence its name), but they've now blocked
-# the web service from use without signing a EULA. So, byebye xe!
+# Use the fixer.io web API to convert currencies on the commandline.
+# This used to use Yahoo Finance and later xe.com (hence its name), 
+# but they've now blocked their web services from use without signing a EULA,
+# So, byebye xe and Yahoo Finance!
 #
 # The original idea was stolen from 
 # http://www.commandlinefu.com/commands/view/7866/currency-converter-using-xe.com
@@ -25,21 +26,16 @@ else
 	to="${3::3}" 
 fi
 
-args="s=${from}${to}=X&f=l1&e=.cs"
-cmd="curl -s 'http://download.finance.yahoo.com/d/quotes.csv?${args}'"
-rate=$(eval "$cmd")
-code="$?"
+cmd="curl -s 'https://api.fixer.io/latest?symbols=${from^^},${to^^}'"
+response=$(eval "$cmd")
+code_get="$?"
+rate=$(eval "echo \"$response\" | sed -e 's/[{}:,]/ /g' | awk '{print \$NF}'")
+code_rate="$?"
 
-if [ "$rate" == "N/A" ]; then
-	echo "Unable to perform currency conversion" >&2
-	exit 1
-fi
-
-# TODO: Assert that the result is a number 
-
-if [ $code -ne 0 ]; then
+if [ $code_get -ne 0 -o \
+     $code_rate -ne 0 ]; then
 	dump=$(mktemp)
-	echo -e "$cmd: ($code)\n$rate" > "$dump"
+	echo -e "$cmd: ($code)\nResponse:\n$response\n\nRate:\n$rate\n" > "$dump"
 	echo "It appears that conversion failed, see \"$dump\" for details" >&2
 	exit $code
 fi

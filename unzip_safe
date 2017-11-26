@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+if [ $# -lt 1 ]; then
+    echo "Usage: $(basename $0) <zipfile>"
+fi
+
+zip_name="$1"
+unzipped_name="$(basename $zip_name .zip)"
+mkdir -v "$unzipped_name" \
+      && unzip "$zip_name" -d "$unzipped_name"  \
+      && rm -v "$zip_name"
+
