@@ -26,10 +26,13 @@ else
 	to="${3::3}" 
 fi
 
-cmd="curl -s 'https://api.fixer.io/latest?symbols=${from^^},${to^^}'"
+cmd="curl -s 'https://api.fixer.io/latest?base=${from^^}&symbols=${to^^}'"
 response=$(eval "$cmd")
 code_get="$?"
+#echo "$response"
+#echo "$response" | sed -e 's/[{}:,]/ /g' 
 rate=$(eval "echo \"$response\" | sed -e 's/[{}:,]/ /g' | awk '{print \$NF}'")
+#echo "Rate: $rate"
 code_rate="$?"
 
 if [ $code_get -ne 0 -o \
